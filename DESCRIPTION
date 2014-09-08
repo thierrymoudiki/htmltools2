@@ -1,8 +1,8 @@
 Package: htmltools
 Type: Package
 Title: Tools for HTML
-Version: 0.2.4
-Date: 2014-05-21
+Version: 0.2.6
+Date: 2014-07-30
 Author: RStudio, Inc.
 Maintainer: Joe Cheng <joe@rstudio.com>
 Description: Tools for HTML generation and output
@@ -11,7 +11,7 @@ Imports: utils, digest
 Suggests: markdown, testthat
 Enhances: knitr
 License: GPL (>= 2)
-Packaged: 2014-05-21 18:40:43 UTC; jcheng
+Packaged: 2014-09-08 16:45:00 UTC; jcheng
 NeedsCompilation: no
 Repository: CRAN
-Date/Publication: 2014-05-28 00:51:59
+Date/Publication: 2014-09-08 19:23:28
