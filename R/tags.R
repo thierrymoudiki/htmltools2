@@ -1,6 +1,19 @@
 #' @import utils digest
 NULL
 
+# Like base::paste, but converts all string args to UTF-8 first.
+paste8 <- function(..., sep = " ", collapse = NULL) {
+  args <- c(
+    lapply(list(...), enc2utf8),
+    list(
+      sep = if (is.null(sep)) sep else enc2utf8(sep),
+      collapse = if (is.null(collapse)) collapse else enc2utf8(collapse)
+    )
+  )
+
+  do.call(paste, args)
+}
+
 # Reusable function for registering a set of methods with S3 manually. The
 # methods argument is a list of character vectors, each of which has the form
 # c(package, genname, class).
@@ -171,6 +184,11 @@ as.character.shiny.tag <- function(x, ...) {
 }
 
 #' @export
+as.character.html <- function(x, ...) {
+  as.vector(enc2utf8(x))
+}
+
+#' @export
 print.shiny.tag.list <- print.shiny.tag
 
 #' @export
@@ -227,6 +245,32 @@ tagList <- function(...) {
 tagAppendAttributes <- function(tag, ...) {
   tag$attribs <- c(tag$attribs, list(...))
   tag
+}
+
+#' @param attr The name of an attribute.
+#' @rdname tag
+#' @export
+tagHasAttribute <- function(tag, attr) {
+  result <- attr %in% names(tag$attribs)
+  result
+}
+
+#' @rdname tag
+#' @export
+tagGetAttribute <- function(tag, attr) {
+  # Find out which positions in the attributes list correspond to the given attr
+  attribs <- tag$attribs
+  attrIdx <- which(attr == names(attribs))
+
+  if (length(attrIdx) == 0) {
+    return (NULL)
+  }
+
+  # Convert all attribs to chars explicitly; prevents us from messing up factors
+  result <- lapply(attribs[attrIdx], as.character)
+  # Separate multiple attributes with the same name
+  result <- paste(result, collapse  = " ")
+  result
 }
 
 #' @rdname tag
@@ -331,12 +375,14 @@ tagWrite <- function(tag, textWriter, indent=0, eol = "\n") {
 
   # Check if it's just text (may either be plain-text or HTML)
   if (is.character(tag)) {
-    textWriter(paste(indentText, normalizeText(tag), eol, sep=""))
+    textWriter(indentText)
+    textWriter(normalizeText(tag))
+    textWriter(eol)
     return (NULL)
   }
 
   # write tag name
-  textWriter(paste(indentText, "<", tag$name, sep=""))
+  textWriter(paste8(indentText, "<", tag$name, sep=""))
 
   # Convert all attribs to chars explicitly; prevents us from messing up factors
   attribs <- lapply(tag$attribs, as.character)
@@ -352,10 +398,10 @@ tagWrite <- function(tag, textWriter, indent=0, eol = "\n") {
       if (is.logical(attribValue))
         attribValue <- tolower(attribValue)
       text <- htmlEscape(attribValue, attribute=TRUE)
-      textWriter(paste(" ", attrib,"=\"", text, "\"", sep=""))
+      textWriter(paste8(" ", attrib,"=\"", text, "\"", sep=""))
     }
     else {
-      textWriter(paste(" ", attrib, sep=""))
+      textWriter(paste8(" ", attrib, sep=""))
     }
   }
 
@@ -366,14 +412,14 @@ tagWrite <- function(tag, textWriter, indent=0, eol = "\n") {
 
     # special case for a single child text node (skip newlines and indentation)
     if ((length(children) == 1) && is.character(children[[1]]) ) {
-      textWriter(paste(normalizeText(children[[1]]), "</", tag$name, ">", eol,
+      textWriter(paste8(normalizeText(children[[1]]), "</", tag$name, ">", eol,
         sep=""))
     }
     else {
       textWriter("\n")
       for (child in children)
         tagWrite(child, textWriter, nextIndent)
-      textWriter(paste(indentText, "</", tag$name, ">", eol, sep=""))
+      textWriter(paste8(indentText, "</", tag$name, ">", eol, sep=""))
     }
   }
   else {
@@ -382,10 +428,10 @@ tagWrite <- function(tag, textWriter, indent=0, eol = "\n") {
     if (tag$name %in% c("area", "base", "br", "col", "command", "embed", "hr",
       "img", "input", "keygen", "link", "meta", "param",
       "source", "track", "wbr")) {
-      textWriter(paste("/>", eol, sep=""))
+      textWriter(paste8("/>", eol, sep=""))
     }
     else {
-      textWriter(paste("></", tag$name, ">", eol, sep=""))
+      textWriter(paste8("></", tag$name, ">", eol, sep=""))
     }
   }
 }
@@ -445,13 +491,27 @@ renderTags <- function(x, singletons = character(0), indent = 0) {
 #' @rdname renderTags
 #' @export
 doRenderTags <- function(x, indent = 0) {
-  # Render the body--the bodyHtml variable will be created
-  conn <- file(open="w+")
-  connWriter <- function(text) writeChar(text, conn, eos = NULL)
+  # The text that is written to this connWriter will be converted to
+  # UTF-8 using enc2utf8. The rendered output will always be UTF-8
+  # encoded.
+  #
+  # We use a file() here instead of textConnection() or paste/c to
+  # avoid the overhead of copying, which is huge for moderately
+  # large numbers of calls to connWriter(). Generally when you want
+  # to incrementally build up a long string out of immutable ones,
+  # you want to use a mutable/growable string buffer of some kind;
+  # since R doesn't have something like that (that I know of),
+  # file() is the next best thing.
+  conn <- file(open="w+b", encoding = "UTF-8")
+  connWriter <- function(text) {
+    text <- enc2utf8(text)
+    # This is actually writing UTF-8 bytes, not chars
+    writeBin(charToRaw(text), conn)
+  }
   htmlResult <- tryCatch({
     tagWrite(x, connWriter, indent)
     flush(conn)
-    readLines(conn)
+    readLines(conn, encoding = "UTF-8")
   },
     finally = close(conn)
   )
@@ -755,7 +815,7 @@ tags <- list(
 #' @export
 HTML <- function(text, ...) {
   htmlText <- c(text, as.character(list(...)))
-  htmlText <- paste(htmlText, collapse=" ")
+  htmlText <- paste8(htmlText, collapse=" ")
   attr(htmlText, "html") <- TRUE
   class(htmlText) <- c("html", "character")
   htmlText
@@ -858,6 +918,16 @@ as.tags.default <- function(x, ...) {
 
 #' @export
 as.tags.html <- function(x, ...) {
+  x
+}
+
+#' @export
+as.tags.shiny.tag <- function(x, ...) {
+  x
+}
+
+#' @export
+as.tags.shiny.tag.list <- function(x, ...) {
   x
 }
 
@@ -1187,7 +1257,7 @@ hr <- function(...) tags$hr(...)
 #' @export
 includeHTML <- function(path) {
   lines <- readLines(path, warn=FALSE, encoding='UTF-8')
-  return(HTML(paste(lines, collapse='\r\n')))
+  return(HTML(paste8(lines, collapse='\r\n')))
 }
 
 #' @note \code{includeText} escapes its contents, but does no other processing.
@@ -1200,7 +1270,7 @@ includeHTML <- function(path) {
 #' @export
 includeText <- function(path) {
   lines <- readLines(path, warn=FALSE, encoding='UTF-8')
-  return(paste(lines, collapse='\r\n'))
+  return(paste8(lines, collapse='\r\n'))
 }
 
 #' @note The \code{includeMarkdown} function requires the \code{markdown}
@@ -1208,8 +1278,6 @@ includeText <- function(path) {
 #' @rdname include
 #' @export
 includeMarkdown <- function(path) {
-  library(markdown)
-
   html <- markdown::markdownToHTML(path, fragment.only=TRUE)
   Encoding(html) <- 'UTF-8'
   return(HTML(html))
@@ -1224,14 +1292,14 @@ includeCSS <- function(path, ...) {
   if (is.null(args$type))
     args$type <- 'text/css'
   return(do.call(tags$style,
-    c(list(HTML(paste(lines, collapse='\r\n'))), args)))
+    c(list(HTML(paste8(lines, collapse='\r\n'))), args)))
 }
 
 #' @rdname include
 #' @export
 includeScript <- function(path, ...) {
   lines <- readLines(path, warn=FALSE, encoding='UTF-8')
-  return(tags$script(HTML(paste(lines, collapse='\r\n')), ...))
+  return(tags$script(HTML(paste8(lines, collapse='\r\n')), ...))
 }
 
 #' Include content only once
@@ -1304,4 +1372,75 @@ validateCssUnit <- function(x) {
     x <- paste(x, "px", sep = "")
   }
   x
+}
+
+#' CSS string helper
+#'
+#' Convenience function for building CSS style declarations (i.e. the string
+#' that goes into a style attribute, or the parts that go inside curly braces in
+#' a full stylesheet).
+#'
+#' CSS uses \code{'-'} (minus) as a separator character in property names, but
+#' this is an inconvenient character to use in an R function argument name.
+#' Instead, you can use \code{'.'} (period) and/or \code{'_'} (underscore) as
+#' separator characters. For example, \code{css(font.size = "12px")} yields
+#' \code{"font-size:12px;"}.
+#'
+#' To mark a property as \code{!important}, add a \code{'!'} character to the end
+#' of the property name. (Since \code{'!'} is not normally a character that can be
+#' used in an identifier in R, you'll need to put the name in double quotes or
+#' backticks.)
+#'
+#' Argument values will be converted to strings using
+#' \code{paste(collapse = " ")}. Any property with a value of \code{NULL} or
+#' \code{""} (after paste) will be dropped.
+#'
+#' @param ... Named style properties, where the name is the property name and
+#'   the argument is the property value. See Details for conversion rules.
+#' @param collapse_ (Note that the parameter name has a trailing underscore
+#'   character.) Character to use to collapse properties into a single string;
+#'   likely \code{""} (the default) for style attributes, and either \code{"\n"}
+#'   or \code{NULL} for style blocks.
+#'
+#' @examples
+#' padding <- 6
+#' css(
+#'   font.family = "Helvetica, sans-serif",
+#'   margin = paste0(c(10, 20, 10, 20), "px"),
+#'   "padding!" = if (!is.null(padding)) padding
+#' )
+#'
+#' @export
+css <- function(..., collapse_ = "") {
+  props <- list(...)
+  if (length(props) == 0) {
+    return("")
+  }
+
+  if (is.null(names(props)) || any(names(props) == "")) {
+    stop("cssList expects all arguments to be named")
+  }
+
+  # Necessary to make factors show up as level names, not numbers
+  props[] <- lapply(props, paste, collapse = " ")
+
+  # Drop null args
+  props <- props[!sapply(props, empty)]
+  if (length(props) == 0) {
+    return("")
+  }
+
+  # Replace all '.' and '_' in property names to '-'
+  names(props) <- gsub("[._]", "-", tolower(gsub("([A-Z])", "-\\1", names(props))))
+
+  # Create "!important" suffix for each property whose name ends with !, then
+  # remove the ! from the property name
+  important <- ifelse(grepl("!$", names(props), perl = TRUE), " !important", "")
+  names(props) <- sub("!$", "", names(props), perl = TRUE)
+
+  paste0(names(props), ":", props, important, ";", collapse = collapse_)
+}
+
+empty <- function(x) {
+  length(x) == 0 || (is.character(x) && !any(nzchar(x)))
 }
