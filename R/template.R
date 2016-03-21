@@ -5,8 +5,11 @@
 #' \code{html_document}, and can be passed to the function
 #' \code{\link{renderDocument}} to get the final HTML text.
 #'
-#' @param filename Path to an HTML template file.
+#' @param filename Path to an HTML template file. Incompatible with
+#'   \code{text_}.
 #' @param ... Variable values to use when processing the template.
+#' @param text_ A string to use as the template, instead of a file. Incompatible
+#'   with \code{filename}.
 #' @param document_ Is this template a complete HTML document (\code{TRUE}), or
 #'   a fragment of HTML that is to be inserted into an HTML document
 #'   (\code{FALSE})? With \code{"auto"} (the default), auto-detect by searching
@@ -14,25 +17,23 @@
 #'
 #' @seealso \code{\link{renderDocument}}
 #' @export
-htmlTemplate <- function(filename, ..., document_ = "auto") {
-  html <- readChar(filename, file.info(filename)$size, useBytes = TRUE)
-  Encoding(html) <- "UTF-8"
-
-  pieces <- strsplit(html, "{{", fixed = TRUE)[[1]]
-  pieces <- strsplit(pieces, "}}", fixed = TRUE)
-
-  # Each item in `pieces` is a 2-element character vector. In that vector, the
-  # first item is code, and the second is text. The one exception is that the
-  # first item in `pieces` will be a 1-element char vector; that element is
-  # text.
-  if (length(pieces[[1]]) != 1) {
-    stop("Mismatched {{ and }} in HTML template.")
+#' @useDynLib htmltools
+#' @importFrom Rcpp sourceCpp
+htmlTemplate <- function(filename = NULL, ..., text_ = NULL, document_ = "auto") {
+  if (!xor(is.null(filename), is.null(text_))) {
+    stop("htmlTemplate requires either `filename` or `text_`.")
   }
-  lapply(pieces[-1], function(x) {
-    if (length(x) != 2) {
-      stop("Mismatched {{ and }} in HTML template.")
-    }
-  })
+
+  if (!is.null(filename)) {
+    html <- readChar(filename, file.info(filename)$size, useBytes = TRUE)
+    Encoding(html) <- "UTF-8"
+  } else if(!is.null(text_)) {
+    text_ <- paste8(text_, collapse = "\n")
+    html <- enc2utf8(text_)
+  }
+
+  pieces <- template_dfa(html)
+  Encoding(pieces) <- "UTF-8"
 
   # Create environment to evaluate code, as a child of the global env. This
   # environment gets the ... arguments assigned as variables.
@@ -43,19 +44,28 @@ htmlTemplate <- function(filename, ..., document_ = "auto") {
   vars$headContent <- function() HTML("<!-- HEAD_CONTENT -->")
   env <- list2env(vars, parent = globalenv())
 
-  pieces[[1]] <- HTML(pieces[[1]])
-  # For each item in `pieces` other than the first, run the code in the first subitem.
-  pieces[-1] <- lapply(pieces[-1], function(piece) {
-    tagList(
-      eval(parse(text = piece[1]), env),
-      HTML(piece[[2]])
-    )
-  })
+  # All the odd-numbered pieces are HTML; all the even-numbered pieces are code
+  pieces <- mapply(
+    pieces,
+    rep_len(c(FALSE, TRUE), length.out = length(pieces)),
+    FUN = function(piece, isCode) {
+      if (isCode) {
+        eval(parse(text = piece), env)
+      } else if (piece == "") {
+        # Don't add leading/trailing '\n' if empty HTML string.
+        NULL
+      } else {
+        HTML(piece)
+      }
+    },
+    SIMPLIFY = FALSE
+  )
+
 
   result <- tagList(pieces)
 
   if (document_ == "auto") {
-    document_ = grepl("<HTML>", html, ignore.case = TRUE)
+    document_ = grepl("<HTML(\\s[^<]*)?>", html, ignore.case = TRUE)
   }
   if (document_) {
     # The html.document class indicates that it's a complete document, and not

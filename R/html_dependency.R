@@ -19,6 +19,10 @@
 #' @param head Arbitrary lines of HTML to insert into the document head
 #' @param attachment Attachment(s) to include within the document head. See
 #'   Details.
+#' @param all_files Whether all files under the \code{src} directory are
+#'   dependency files. If \code{FALSE}, only the files specified in
+#'   \code{script}, \code{stylesheet}, and \code{attachment} are treated as
+#'   dependency files.
 #'
 #' @return An object that can be included in a list of dependencies passed to
 #'   \code{\link{attachDependencies}}.
@@ -62,7 +66,8 @@ htmlDependency <- function(name,
                            script = NULL,
                            stylesheet = NULL,
                            head = NULL,
-                           attachment = NULL) {
+                           attachment = NULL,
+                           all_files = TRUE) {
 
   # This function shouldn't be called from a namespace environment with
   # absolute paths.
@@ -73,6 +78,10 @@ htmlDependency <- function(name,
       " See ?htmlDependency for more information."
     )
   }
+
+  version <- as.character(version)
+  validateScalarName(name)
+  validateScalarName(version)
 
   srcNames <- names(src)
   if (is.null(srcNames))
@@ -89,8 +98,16 @@ htmlDependency <- function(name,
     script = script,
     stylesheet = stylesheet,
     head = head,
-    attachment = attachment
+    attachment = attachment,
+    all_files = all_files
   ))
+}
+
+validateScalarName <- function(x, name = deparse(substitute(x))) {
+  if (length(x) != 1 || x == "" || grepl("[/\\]", x)) stop(
+    "Invalid argument '", name,
+    "' (must be a non-empty character string and contain no '/' or '\\')"
+  )
 }
 
 #' HTML dependency metadata
@@ -102,10 +119,33 @@ htmlDependency <- function(name,
 #' x\})}, except that if there are any existing dependencies,
 #' \code{attachDependencies} will add to them, instead of replacing them.
 #'
+#' As of htmltools 0.3.4, HTML dependencies can be attached without using
+#' \code{attachDependencies}. Instead, they can be added inline, like a child
+#' object of a tag or \code{\link{tagList}}.
+#'
 #' @param x An object which has (or should have) HTML dependencies.
 #' @param value An HTML dependency, or a list of HTML dependencies.
 #' @param append If FALSE (the default), replace any existing dependencies. If
 #'   TRUE, add the new dependencies to the existing ones.
+#'
+#' @examples
+#' # Create a JavaScript dependency
+#' dep <- htmlDependency("jqueryui", "1.11.4", c(href="shared/jqueryui"),
+#'                       script = "jquery-ui.min.js")
+#'
+#' # A CSS dependency
+#' htmlDependency(
+#'   "font-awesome", "4.5.0", c(href="shared/font-awesome"),
+#'   stylesheet = "css/font-awesome.min.css"
+#' )
+#'
+#' # A few different ways to add the dependency to tag objects:
+#' # Inline as a child of the div()
+#' div("Code here", dep)
+#' # Inline in a tagList
+#' tagList(div("Code here"), dep)
+#' # With attachDependencies
+#' attachDependencies(div("Code here"), dep)
 #'
 #' @export
 htmlDependencies <- function(x) {
@@ -159,6 +199,9 @@ suppressDependencies <- function(...) {
   })
 }
 
+#' @export
+print.html_dependency <- function(x, ...) str(x)
+
 dir_path <- function(dependency) {
   if ("dir" %in% names(dependency$src))
     return(dependency$src[["dir"]])
@@ -193,16 +236,13 @@ urlEncodePath <- function(x) {
 #'
 #' Copies an HTML dependency to a subdirectory of the given directory. The
 #' subdirectory name will be \emph{name}-\emph{version} (for example,
-#' "outputDir/jquery-1.11.0").
+#' "outputDir/jquery-1.11.0"). You may set \code{options(htmltools.dir.version =
+#' FALSE)} to suppress the version number in the subdirectory name.
 #'
 #' In order for disk-based dependencies to work with static HTML files, it's
 #' generally necessary to copy them to either the directory of the referencing
 #' HTML file, or to a subdirectory of that directory. This function makes it
 #' easier to perform that copy.
-#'
-#' If a subdirectory named \emph{name}-\emph{version} already exists in
-#' \code{outputDir}, then copying is not performed; the existing contents are
-#' assumed to be up-to-date.
 #'
 #' @param dependency A single HTML dependency object.
 #' @param outputDir The directory in which a subdirectory should be created for
@@ -231,30 +271,52 @@ copyDependencyToDir <- function(dependency, outputDir, mustWork = TRUE) {
     }
   }
 
-  if (!file.exists(outputDir))
+  if (length(outputDir) != 1 || outputDir %in% c("", "/"))
+    stop('outputDir must be of length 1 and cannot be "" or "/"')
+
+  if (!dir_exists(outputDir))
     dir.create(outputDir)
 
-  target_dir <- file.path(outputDir,
-    paste(dependency$name, dependency$version, sep = "-"))
+  target_dir <- if (getOption('htmltools.dir.version', TRUE)) {
+    paste(dependency$name, dependency$version, sep = "-")
+  } else dependency$name
+  target_dir <- file.path(outputDir, target_dir)
 
-  if (!file.exists(target_dir)) {
-    dir.create(target_dir)
+  # completely remove the target dir because we don't want possible leftover
+  # files in the target dir, e.g. we may have lib/foo.js last time, and it was
+  # removed from the original library, then the next time we copy the library
+  # over to the target dir, we want to remove this lib/foo.js as well;
+  # unlink(recursive = TRUE) can be dangerous, e.g. we certainly do not want 'rm
+  # -rf /' to happen; in htmlDependency() we have made sure dependency$name and
+  # dependency$version are not "" or "/" or contains no / or \; we have also
+  # made sure outputDir is not "" or "/" above, so target_dir here should be
+  # relatively safe to be removed recursively
+  if (dir_exists(target_dir)) unlink(target_dir, recursive = TRUE)
+  dir.create(target_dir)
 
-    srcfiles <- file.path(dir, list.files(dir))
-    destfiles <- file.path(target_dir, list.files(dir))
-    isdir <- file.info(srcfiles)$isdir
-    destfiles <- ifelse(isdir, dirname(destfiles), destfiles)
-
-    mapply(function(from, to, recursive) {
-      if (recursive && !file.exists(to))
-        dir.create(to)
-      file.copy(from, to, recursive=recursive)
-    }, srcfiles, destfiles, isdir)
+  files <- if (dependency$all_files) list.files(dir) else {
+    unlist(dependency[c('script', 'stylesheet', 'attachment')])
   }
+  srcfiles <- file.path(dir, files)
+  destfiles <- file.path(target_dir, files)
+  isdir <- file.info(srcfiles)$isdir
+  destfiles <- ifelse(isdir, dirname(destfiles), destfiles)
+
+  mapply(function(from, to, isdir) {
+    if (!dir_exists(dirname(to)))
+      dir.create(dirname(to), recursive = TRUE)
+    if (isdir && !dir_exists(to))
+      dir.create(to)
+    file.copy(from, to, overwrite = TRUE, recursive = isdir)
+  }, srcfiles, destfiles, isdir)
 
   dependency$src$file <- normalizePath(target_dir, "/", TRUE)
 
   dependency
+}
+
+dir_exists <- function(paths) {
+  utils::file_test("-d", paths)
 }
 
 # given a directory and a file, return a relative path from the directory to the

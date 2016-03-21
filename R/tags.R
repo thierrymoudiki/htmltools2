@@ -167,7 +167,7 @@ print.shiny.tag <- function(x, browse = is.browsable(x), ...) {
   if (browse)
     html_print(x)
   else
-    print(as.character(x), ...)
+    print(HTML(as.character(x)), ...)
   invisible(x)
 }
 
@@ -180,7 +180,7 @@ format.shiny.tag <- function(x, ..., singletons = character(0), indent = 0) {
 
 #' @export
 as.character.shiny.tag <- function(x, ...) {
-  renderTags(x)$html
+  as.character(renderTags(x)$html)
 }
 
 #' @export
@@ -214,7 +214,7 @@ print.html <- function(x, ..., browse = is.browsable(x)) {
   if (browse)
     html_print(HTML(x))
   else
-    cat(x, "\n")
+    cat(x, "\n", sep = "")
   invisible(x)
 }
 
@@ -503,19 +503,31 @@ doRenderTags <- function(x, indent = 0) {
   # since R doesn't have something like that (that I know of),
   # file() is the next best thing.
   conn <- file(open="w+b", encoding = "UTF-8")
+  # Track how many bytes we write, so we can read in the right amount
+  # later with readChar.
+  bytes <- 0
+
   connWriter <- function(text) {
-    text <- enc2utf8(text)
+    raw <- charToRaw(enc2utf8(text))
+    bytes <<- bytes + length(raw)
     # This is actually writing UTF-8 bytes, not chars
-    writeBin(charToRaw(text), conn)
+    writeBin(raw, conn)
   }
-  htmlResult <- tryCatch({
-    tagWrite(x, connWriter, indent)
-    flush(conn)
-    readLines(conn, encoding = "UTF-8")
-  },
+
+  htmlResult <- tryCatch(
+    {
+      tagWrite(x, connWriter, indent)
+      flush(conn)
+
+      # Strip off trailing \n (which is always there) but make sure not to
+      # specify a negative number of chars.
+      bytes <- max(bytes - 1, 0)
+      readChar(conn, bytes, useBytes = TRUE)
+    },
     finally = close(conn)
   )
-  return(HTML(paste(htmlResult, collapse = "\n")))
+  Encoding(htmlResult) <- "UTF-8"
+  return(HTML(htmlResult))
 }
 
 # Walk a tree of tag objects, rewriting objects according to func.
@@ -629,7 +641,7 @@ takeHeads <- function(ui) {
 #'
 #' @export
 findDependencies <- function(tags) {
-  dep <- htmlDependencies(tags)
+  dep <- htmlDependencies(tagify(tags))
   if (!is.null(dep) && inherits(dep, "html_dependency"))
     dep <- list(dep)
   children <- if (is.list(tags)) {
@@ -660,9 +672,9 @@ findDependencies <- function(tags) {
 #' @name builder
 #' @param ... Attributes and children of the element. Named arguments become
 #'   attributes, and positional arguments become children. Valid children are
-#'   tags, single-character character vectors (which become text nodes), and raw
-#'   HTML (see \code{\link{HTML}}). You can also pass lists that contain tags,
-#'   text nodes, and HTML.
+#'   tags, single-character character vectors (which become text nodes), raw
+#'   HTML (see \code{\link{HTML}}), and \code{html_dependency} objects. You can
+#'   also pass lists that contain tags, text nodes, or HTML.
 #' @export tags
 #' @examples
 #' doc <- tags$html(
@@ -936,6 +948,11 @@ as.tags.character <- function(x, ...) {
   # For printing as.tags("<strong>") directly at console, without dropping any
   # attached dependencies
   tagList(x)
+}
+
+#' @export
+as.tags.html_dependency <- function(x, ...) {
+  attachDependencies(tagList(), x)
 }
 
 #' Preserve HTML regions
