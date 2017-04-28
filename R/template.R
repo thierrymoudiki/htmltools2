@@ -17,7 +17,7 @@
 #'
 #' @seealso \code{\link{renderDocument}}
 #' @export
-#' @useDynLib htmltools
+#' @useDynLib htmltools, .registration = TRUE
 #' @importFrom Rcpp sourceCpp
 htmlTemplate <- function(filename = NULL, ..., text_ = NULL, document_ = "auto") {
   if (!xor(is.null(filename), is.null(text_))) {
@@ -120,15 +120,22 @@ renderDocument <- function(x, deps = NULL, processDep = identity) {
 
   # Put content in the <head> section
   head_content <- paste0(
-    '  <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>',
-    sprintf('  <script type="application/shiny-singletons">%s</script>',
+    '  <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>\n',
+    sprintf('  <script type="application/shiny-singletons">%s</script>\n',
             paste(result$singletons, collapse = ',')
     ),
-    sprintf('  <script type="application/html-dependencies">%s</script>',
+    sprintf('  <script type="application/html-dependencies">%s</script>\n',
             depStr
     ),
     depHtml,
     c(result$head, recursive = TRUE)
   )
-  sub("<!-- HEAD_CONTENT -->", head_content, result$html, fixed = TRUE)
+  # Need to mark result as UTF-8. If body is ASCII, it will be marked with
+  # encoding "unknown". If the head has UTF-8 characters and is marked as
+  # "UTF-8", the output string here will have the correct UTF-8 byte sequences,
+  # but will be marked as "unknown", which causes the wrong text to be
+  # displayed. See https://github.com/rstudio/shiny/issues/1395
+  res <- sub("<!-- HEAD_CONTENT -->", head_content, result$html, fixed = TRUE)
+  Encoding(res) <- "UTF-8"
+  res
 }

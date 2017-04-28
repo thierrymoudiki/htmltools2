@@ -68,11 +68,14 @@ depListToNamedDepList <- function(dependencies) {
 #' the latest version number is used.
 #'
 #' @param dependencies A list of \code{\link{htmlDependency}} objects.
+#' @param resolvePackageDir Whether to resolve the relative path to an absolute
+#'   path via \code{\link{system.file}} when the \code{package} attribute is
+#'   present in a dependency object.
 #' @return dependencies A list of \code{\link{htmlDependency}} objects with
 #'   redundancies removed.
 #'
 #' @export
-resolveDependencies <- function(dependencies) {
+resolveDependencies <- function(dependencies, resolvePackageDir = TRUE) {
   # Remove nulls
   deps <- dependencies[!sapply(dependencies, is.null)]
 
@@ -88,7 +91,13 @@ resolveDependencies <- function(dependencies) {
     sorted <- order(ifelse(depnames == depname, TRUE, NA), depvers,
       na.last = NA, decreasing = TRUE)
     # The first element in the list is the one with the largest version.
-    deps[[sorted[[1]]]]
+    dep <- deps[[sorted[[1]]]]
+    if (resolvePackageDir && !is.null(dep$package)) {
+      dir <- dep$src$file
+      if (!is.null(dir)) dep$src$file <- system.file(dir, package = dep$package)
+      dep$package <- NULL
+    }
+    dep
   }))
 }
 
@@ -150,9 +159,10 @@ dropNulls <- function(x) {
 }
 
 nullOrEmpty <- function(x) {
-  is.null(x) || length(x) == 0
+  length(x) == 0
 }
-# Given a vector or list, drop all the NULL items in it
+
+# Given a vector or list, drop all the NULL or length-0 items in it
 dropNullsOrEmpty <- function(x) {
   x[!vapply(x, nullOrEmpty, FUN.VALUE=logical(1))]
 }
@@ -333,9 +343,9 @@ tag <- function(`_tag_name`, varArgs) {
   if (is.null(varArgsNames))
     varArgsNames <- character(length=length(varArgs))
 
-  # Named arguments become attribs, dropping NULL values
+  # Named arguments become attribs, dropping NULL and length-0 values
   named_idx <- nzchar(varArgsNames)
-  attribs <- dropNulls(varArgs[named_idx])
+  attribs <- dropNullsOrEmpty(varArgs[named_idx])
 
   # Unnamed arguments are flattened and added as children.
   # Use unname() to remove the names attribute from the list, which would
@@ -472,7 +482,7 @@ renderTags <- function(x, singletons = character(0), indent = 0) {
   # Do singleton and head processing before rendering
   singletonInfo <- takeSingletons(x, singletons)
   headInfo <- takeHeads(singletonInfo$ui)
-  deps <- resolveDependencies(findDependencies(singletonInfo$ui))
+  deps <- resolveDependencies(findDependencies(singletonInfo$ui, tagify = FALSE))
 
   headIndent <- if (is.numeric(indent)) indent + 1 else indent
   headHtml <- doRenderTags(headInfo$head, indent = headIndent)
@@ -636,12 +646,16 @@ takeHeads <- function(ui) {
 #' Walks a hierarchy of tags looking for attached dependencies.
 #'
 #' @param tags A tag-like object to search for dependencies.
+#' @param tagify Whether to tagify the input before searching for dependencies.
 #'
 #' @return A list of \code{\link{htmlDependency}} objects.
 #'
 #' @export
-findDependencies <- function(tags) {
-  dep <- htmlDependencies(tagify(tags))
+findDependencies <- function(tags, tagify = TRUE) {
+  if (isTRUE(tagify)) {
+    tags <- tagify(tags)
+  }
+  dep <- htmlDependencies(tags)
   if (!is.null(dep) && inherits(dep, "html_dependency"))
     dep <- list(dep)
   children <- if (is.list(tags)) {
@@ -651,7 +665,7 @@ findDependencies <- function(tags) {
       tags
     }
   }
-  childDeps <- unlist(lapply(children, findDependencies), recursive = FALSE)
+  childDeps <- unlist(lapply(children, findDependencies, tagify = FALSE), recursive = FALSE)
   c(childDeps, if (!is.null(dep)) dep)
 }
 
@@ -1140,8 +1154,11 @@ extractPreserveChunks <- function(strval) {
 #' @rdname htmlPreserve
 #' @export
 restorePreserveChunks <- function(strval, chunks) {
+  strval <- enc2utf8(strval)
+  chunks <- enc2utf8(chunks)
   for (id in names(chunks))
     strval <- gsub(id, chunks[[id]], strval, fixed = TRUE, useBytes = TRUE)
+  Encoding(strval) <- 'UTF-8'
   strval
 }
 
@@ -1160,7 +1177,7 @@ NULL
 knit_print.shiny.tag <- function(x, ...) {
   x <- tagify(x)
   output <- surroundSingletons(x)
-  deps <- resolveDependencies(findDependencies(x))
+  deps <- resolveDependencies(findDependencies(x, tagify = FALSE), resolvePackageDir = FALSE)
   content <- takeHeads(output)
   head_content <- doRenderTags(tagList(content$head))
 
@@ -1177,7 +1194,7 @@ knit_print.shiny.tag <- function(x, ...) {
 #' @rdname knitr_methods
 #' @export
 knit_print.html <- function(x, ...) {
-  deps <- resolveDependencies(findDependencies(x))
+  deps <- resolveDependencies(findDependencies(x, tagify = FALSE))
   knitr::asis_output(htmlPreserve(as.character(x)),
     meta = if (length(deps)) list(deps))
 }
@@ -1354,8 +1371,9 @@ is.singleton <- function(x) {
 #' Single element character vectors must be \code{"auto"} or \code{"inherit"},
 #' or a number. If the number has a suffix, it must be valid: \code{px},
 #' \code{\%}, \code{em}, \code{pt}, \code{in}, \code{cm}, \code{mm}, \code{ex},
-#' or \code{pc}. If the number has no suffix, the suffix \code{"px"} is
-#' appended.
+#' \code{pc}, \code{vh}, \code{vw}, \code{vmin}, or \code{vmax}.
+#' If the number has no suffix, the suffix \code{"px"} is appended.
+#'
 #'
 #' Any other value will cause an error to be thrown.
 #'
@@ -1380,7 +1398,7 @@ validateCssUnit <- function(x) {
     x <- as.numeric(x)
 
   pattern <-
-    "^(auto|inherit|((\\.\\d+)|(\\d+(\\.\\d+)?))(%|in|cm|mm|em|ex|pt|pc|px))$"
+    "^(auto|inherit|((\\.\\d+)|(\\d+(\\.\\d+)?))(%|in|cm|mm|em|ex|pt|pc|px|vh|vw|vmin|vmax))$"
 
   if (is.character(x) &&
       !grepl(pattern, x)) {

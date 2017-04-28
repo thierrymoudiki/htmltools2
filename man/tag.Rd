@@ -2,13 +2,14 @@
 % Please edit documentation in R/tags.R
 \name{tag}
 \alias{tag}
+\alias{tagList}
 \alias{tagAppendAttributes}
+\alias{tagHasAttribute}
+\alias{tagGetAttribute}
 \alias{tagAppendChild}
 \alias{tagAppendChildren}
-\alias{tagGetAttribute}
-\alias{tagHasAttribute}
-\alias{tagList}
 \alias{tagSetChildren}
+\alias{tag}
 \title{HTML Tag Object}
 \usage{
 tagList(...)
@@ -71,4 +72,3 @@ x <- list(tags$h1("Title"),
           tags$p("Text here"))
 tagList(x)
 }
-
