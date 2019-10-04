@@ -22,6 +22,15 @@ test_that("Basic tag writing works", {
     "<br/>\none")
 })
 
+test_that("Hanging commas don't break things", {
+  expect_equal(as.character(tagList("hi",)), "hi")
+  expect_equal(as.character(div("one",)), "<div>one</div>")
+  # Multiple commas still throw
+  expect_error(as.character(div("one",,)), "is empty")
+  # Non-trailing commas still throw
+  expect_error(as.character(div(,"one",)), "is empty")
+})
+
 
 test_that("withTags works", {
   output_tags <- tags$div(class = "myclass",
@@ -146,7 +155,7 @@ test_that("Creating simple tags", {
   expect_identical(
     div(),
     structure(
-      list(name = "div", attribs = list(), children = list()),
+      list(name = "div", attribs = dots_list(), children = list()),
       .Names = c("name", "attribs", "children"),
       class = "shiny.tag"
     )
@@ -156,7 +165,7 @@ test_that("Creating simple tags", {
   expect_identical(
     div("text"),
     structure(
-      list(name = "div", attribs = list(), children = list("text")),
+      list(name = "div", attribs = dots_list(), children = list("text")),
       .Names = c("name", "attribs", "children"),
       class = "shiny.tag"
     )
@@ -262,6 +271,52 @@ test_that("Creating nested tags", {
   expect_identical(renderTags(t1)$html, renderTags(t1_full)$html)
 })
 
+# The .noWS option was added in 0.3.6.9003; we may still encounter tags created
+# in an older version (perhaps saved to an RDS file and restored). They would
+# lack this element in their structure.
+test_that("Old tags without the .noWS option can still be rendered", {
+  oldTag <- structure(
+    list(name = "div", attribs = dots_list(), children = list("text")),
+    .Names = c("name", "attribs", "children"),
+    class = "shiny.tag"
+  )
+  w <- WSTextWriter()
+  tagWrite(oldTag, w)
+
+  expect_identical(
+    w$readAll(),
+    "<div>text</div>\n"
+  )
+})
+
+# We moved to rlang::dots_list in 0.3.6; we may still encounter tags created
+# in an older version (perhaps saved to an RDS file and restored). They would
+# use old-school lists.
+test_that("Old tags predating rlang::list2 can still be rendered", {
+  oldTag <- structure(
+    list(name = "div", attribs = list(), children = list("text")),
+    .Names = c("name", "attribs", "children"),
+    class = "shiny.tag"
+  )
+  w <- WSTextWriter()
+  tagWrite(oldTag, w)
+
+  expect_identical(
+    w$readAll(),
+    "<div>text</div>\n"
+  )
+})
+
+test_that("tag with noWS works",{
+  oneline <- tag("span", list(tag("strong", "Super strong", .noWS="outside")))
+  expect_identical(as.character(oneline), "<span><strong>Super strong</strong></span>")
+})
+
+test_that("tag/s with invalid noWS fails fast", {
+  expect_error(tag("span", .noWS="wrong"))
+  expect_error(tags$a(.noWS="wrong"))
+})
+
 test_that("Attributes are preserved", {
   # HTML() adds an attribute to the data structure (note that this is
   # different from the 'attribs' field in the list)
@@ -286,7 +341,7 @@ test_that("Adding attributes to tags", {
   t1 <- tags$div("foo")
 
   # Adding attributes to empty tag
-  expect_identical(t1$attribs, list())
+  expect_identical(t1$attribs, dots_list())
   expect_identical(
     tagAppendAttributes(t1, class = "c1")$attribs,
     list(class = "c1")
@@ -418,6 +473,42 @@ test_that("Getting attributes from tags", {
   )
 })
 
+test_that("NA attributes are rendered correctly", {
+  expect_identical(
+    as.character(tags$div("text", foo = NA)),
+    '<div foo>text</div>'
+  )
+  expect_identical(
+    as.character(tags$div("text", class = "a", foo = NA)),
+    '<div class="a" foo>text</div>'
+  )
+  expect_identical(
+    as.character(tags$div("text", class = "a", foo = NA, class = "b")),
+    '<div class="a b" foo>text</div>'
+  )
+
+  # Multiple NA's are coalesced
+  expect_identical(
+    as.character(tags$div("text", class = "a", foo = NA, class = "b", foo = NA)),
+    '<div class="a b" foo>text</div>'
+  )
+
+  # A non-NA value supersedes NA
+  expect_identical(
+    as.character(tags$div("text", class = "a", foo = NA, foo = "b")),
+    '<div class="a" foo="b">text</div>'
+  )
+  expect_identical(
+    as.character(tags$div("text", class = "a", foo = "b", foo = NA, foo = "c")),
+    '<div class="a" foo="b c">text</div>'
+  )
+  expect_identical(
+    as.character(tags$div("text", class = "a", foo = "b", foo = NA, foo = NA, foo = "c")),
+    '<div class="a" foo="b c">text</div>'
+  )
+})
+
+
 test_that("Flattening a list of tags", {
   # Flatten a nested list
   nested <- list(
@@ -534,12 +625,12 @@ test_that("Low-level singleton manipulation methods", {
   expect_identical(
     renderTags(result3)$html,
     HTML("<div>
-  <!--SHINY.SINGLETON[e2c5bca2641bfa9885e43fd0afd994a659829b32]-->
+  <!--SHINY.SINGLETON[98eee9ba1f9e4ab3db75f33036bf91d4e214342b]-->
   <script>foo</script>
-  <!--/SHINY.SINGLETON[e2c5bca2641bfa9885e43fd0afd994a659829b32]-->
-  <!--SHINY.SINGLETON[e2c5bca2641bfa9885e43fd0afd994a659829b32]-->
+  <!--/SHINY.SINGLETON[98eee9ba1f9e4ab3db75f33036bf91d4e214342b]-->
+  <!--SHINY.SINGLETON[98eee9ba1f9e4ab3db75f33036bf91d4e214342b]-->
   <script>foo</script>
-  <!--/SHINY.SINGLETON[e2c5bca2641bfa9885e43fd0afd994a659829b32]-->
+  <!--/SHINY.SINGLETON[98eee9ba1f9e4ab3db75f33036bf91d4e214342b]-->
 </div>")
     )
 })
@@ -677,11 +768,58 @@ test_that("Latin1 and system encoding are converted to UTF-8", {
 
   expect_identical(Encoding(format(HTML(latin1_str))), "UTF-8")
   expect_identical(Encoding(format(tagList(latin1_str))), "UTF-8")
+
+  # ensure the latin1 attribute returns correctly after escaping
+  latin1_str2 <- rawToChar(as.raw(c(0xff, 0x0d, 0x0a)))
+  Encoding(latin1_str2) <- "latin1"
+  spanLatin <- as.character(tags$span(latin1_str2, title = latin1_str2))
+  expect_identical(Encoding(spanLatin), "UTF-8")
+  expect_identical(
+    charToRaw(spanLatin),
+    as.raw(c(0x3c, 0x73, 0x70, 0x61, 0x6e, 0x20, 0x74, 0x69, 0x74,
+             0x6c, 0x65, 0x3d, 0x22, 0xc3, 0xbf, 0x26, 0x23, 0x31, 0x33, 0x3b,
+             0x26, 0x23, 0x31, 0x30, 0x3b, 0x22, 0x3e, 0xc3, 0xbf, 0x0d, 0x0a,
+             0x3c, 0x2f, 0x73, 0x70, 0x61, 0x6e, 0x3e
+    ))
+  )
+})
+
+test_that("paste8 in Chinese locale works", {
+  loc <- "Chinese"
+  testthat::skip_if_not(is_locale_available(loc), "Chinese locale not available")
+
+  withr::with_locale(c(LC_COLLATE=loc, LC_CTYPE=loc, LC_MONETARY=loc, LC_TIME=loc), {
+    x <- "\377"
+    Encoding(x) <- "latin1"
+    expect_identical(x, "\Uff")
+    expect_identical(Encoding(x), "latin1")
+
+    y <- "\U4E2d"  # Using \Uxxxx always is encoded as UTF-8
+    expect_identical(y, "\U4E2d")
+    expect_identical(Encoding(y), "UTF-8")
+
+    xy <- paste8(x, y)
+    xy
+    expect_identical(xy, "\Uff \U4E2d")
+    expect_identical(Encoding(xy), "UTF-8")
+
+    xy <- paste8(c(x, y), collapse = "")
+    expect_identical(xy, "\Uff\U4E2d")
+    expect_identical(Encoding(xy), "UTF-8")
+  })
 })
 
 test_that("Printing tags works", {
   expect_identical(
     capture.output(print(tags$a(href = "#", "link"))),
     '<a href="#">link</a>'
+  )
+})
+
+test_that("htmlEscape will try to coerce inputs to characters", {
+  x <- list(a1 = "b", a2 = list("b1", "b2"))
+  expect_identical(
+    htmlEscape(x),
+    as.character(x)
   )
 })

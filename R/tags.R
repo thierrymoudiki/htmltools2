@@ -14,6 +14,11 @@ paste8 <- function(..., sep = " ", collapse = NULL) {
   do.call(paste, args)
 }
 
+# A special case of paste8 that employs paste0. Avoids the overhead of lapply.
+concat8 <- function(...) {
+  enc2utf8(paste0(...))
+}
+
 # Reusable function for registering a set of methods with S3 manually. The
 # methods argument is a list of character vectors, each of which has the form
 # c(package, genname, class).
@@ -222,7 +227,7 @@ as.character.shiny.tag.list <- as.character.shiny.tag
 #' @export
 print.html <- function(x, ..., browse = is.browsable(x)) {
   if (browse)
-    html_print(HTML(x))
+    html_print(x)
   else
     cat(x, "\n", sep = "")
   invisible(x)
@@ -243,9 +248,10 @@ normalizeText <- function(text) {
 
 #' @name tag
 #' @rdname tag
+#' @import rlang
 #' @export
 tagList <- function(...) {
-  lst <- list(...)
+  lst <- dots_list(...)
   class(lst) <- c("shiny.tag.list", "list")
   return(lst)
 }
@@ -323,6 +329,10 @@ tagSetChildren <- function(tag, ..., list = NULL) {
 #' @param ...  Unnamed items that comprise this list of tags.
 #' @param list An optional list of elements. Can be used with or instead of the
 #'   \code{...} items.
+#' @param .noWS Character vector used to omit some of the whitespace that would
+#'   normally be written around this tag. Valid options include \code{before},
+#'   \code{after}, \code{outside}, \code{after-begin}, and \code{before-end}.
+#'   Any number of these options can be specified.
 #' @return An HTML tag object that can be rendered as HTML using
 #'   \code{\link{as.character}()}.
 #' @export
@@ -337,7 +347,14 @@ tagSetChildren <- function(tag, ..., list = NULL) {
 #'           tags$h2("Header text"),
 #'           tags$p("Text here"))
 #' tagList(x)
-tag <- function(`_tag_name`, varArgs) {
+#'
+#' # suppress the whitespace between tags
+#' oneline <- tag("span",
+#'   tag("strong", "Super strong", .noWS="outside")
+#' )
+#' cat(as.character(oneline))
+tag <- function(`_tag_name`, varArgs, .noWS=NULL) {
+  validateNoWS(.noWS)
   # Get arg names; if not a named list, use vector of empty strings
   varArgsNames <- names(varArgs)
   if (is.null(varArgsNames))
@@ -352,19 +369,33 @@ tag <- function(`_tag_name`, varArgs) {
   # consist of empty strings anyway.
   children <- unname(varArgs[!named_idx])
 
-  # Return tag data structure
-  structure(
-    list(name = `_tag_name`,
+  st <- list(name = `_tag_name`,
       attribs = attribs,
-      children = children),
-    class = "shiny.tag"
-  )
+      children = children)
+
+  # Conditionally include the .noWS element. We do this to avoid breaking the hashes
+  # of existing tags that weren't leveraging .noWS.
+  if (!is.null(.noWS)){
+    st$.noWS <- .noWS
+  }
+
+  # Return tag data structure
+  structure(st, class = "shiny.tag")
 }
 
 isTagList <- function(x) {
   is.list(x) && (inherits(x, "shiny.tag.list") || identical(class(x), "list"))
 }
 
+noWSOptions <- c("before", "after", "after-begin", "before-end", "outside")
+# Ensure that the provided `.noWS` string contains only valid options
+validateNoWS <- function(.noWS){
+  if (!all(.noWS %in% noWSOptions)){
+    stop("Invalid .noWS option(s) '", paste(.noWS, collapse="', '") ,"' specified.")
+  }
+}
+
+#' @include utils.R
 tagWrite <- function(tag, textWriter, indent=0, eol = "\n") {
 
   if (length(tag) == 0)
@@ -382,24 +413,40 @@ tagWrite <- function(tag, textWriter, indent=0, eol = "\n") {
 
   # compute indent text
   indentText <- paste(rep(" ", indent*2), collapse="")
+  textWriter$writeWS(indentText)
 
   # Check if it's just text (may either be plain-text or HTML)
   if (is.character(tag)) {
-    textWriter(indentText)
-    textWriter(normalizeText(tag))
-    textWriter(eol)
+    textWriter$write(normalizeText(tag))
+    textWriter$writeWS(eol)
     return (NULL)
   }
 
+  .noWS <- tag$.noWS
+
+  if ("before" %in% .noWS || "outside" %in% .noWS) {
+    textWriter$eatWS()
+  }
+
   # write tag name
-  textWriter(paste8(indentText, "<", tag$name, sep=""))
+  textWriter$write(concat8("<", tag$name))
 
   # Convert all attribs to chars explicitly; prevents us from messing up factors
   attribs <- lapply(tag$attribs, as.character)
   # concatenate attributes
   # split() is very slow, so avoid it if possible
-  if (anyDuplicated(names(attribs)))
-    attribs <- lapply(split(attribs, names(attribs)), paste, collapse = " ")
+  if (anyDuplicated(names(attribs))) {
+    attribs <- lapply(split(attribs, names(attribs)), function(x) {
+      na_idx <- is.na(x)
+      if (any(na_idx)) {
+        if (all(na_idx)) {
+          return(NA)
+        }
+        x <- x[!na_idx]
+      }
+      paste(x, collapse = " ")
+    })
+  }
 
   # write attributes
   for (attrib in names(attribs)) {
@@ -408,28 +455,34 @@ tagWrite <- function(tag, textWriter, indent=0, eol = "\n") {
       if (is.logical(attribValue))
         attribValue <- tolower(attribValue)
       text <- htmlEscape(attribValue, attribute=TRUE)
-      textWriter(paste8(" ", attrib,"=\"", text, "\"", sep=""))
+      textWriter$write(concat8(" ", attrib,"=\"", text, "\""))
     }
     else {
-      textWriter(paste8(" ", attrib, sep=""))
+      textWriter$write(concat8(" ", attrib))
     }
   }
 
   # write any children
   children <- dropNullsOrEmpty(flattenTags(tag$children))
   if (length(children) > 0) {
-    textWriter(">")
+    textWriter$write(">")
 
     # special case for a single child text node (skip newlines and indentation)
     if ((length(children) == 1) && is.character(children[[1]]) ) {
-      textWriter(paste8(normalizeText(children[[1]]), "</", tag$name, ">", eol,
-        sep=""))
+      textWriter$write(concat8(normalizeText(children[[1]]), "</", tag$name, ">"))
     }
     else {
-      textWriter("\n")
+      if ("after-begin" %in% .noWS || "inside" %in% .noWS) {
+        textWriter$eatWS()
+      }
+      textWriter$writeWS("\n")
       for (child in children)
         tagWrite(child, textWriter, nextIndent)
-      textWriter(paste8(indentText, "</", tag$name, ">", eol, sep=""))
+      textWriter$writeWS(indentText)
+      if ("before-end" %in% .noWS || "inside" %in% .noWS) {
+        textWriter$eatWS()
+      }
+      textWriter$write(concat8("</", tag$name, ">"))
     }
   }
   else {
@@ -438,12 +491,16 @@ tagWrite <- function(tag, textWriter, indent=0, eol = "\n") {
     if (tag$name %in% c("area", "base", "br", "col", "command", "embed", "hr",
       "img", "input", "keygen", "link", "meta", "param",
       "source", "track", "wbr")) {
-      textWriter(paste8("/>", eol, sep=""))
+      textWriter$write("/>")
     }
     else {
-      textWriter(paste8("></", tag$name, ">", eol, sep=""))
+      textWriter$write(concat8("></", tag$name, ">"))
     }
   }
+  if ("after" %in% .noWS || "outside" %in% .noWS) {
+    textWriter$eatWS()
+  }
+  textWriter$writeWS(eol)
 }
 
 #' Render tags into HTML
@@ -501,43 +558,11 @@ renderTags <- function(x, singletons = character(0), indent = 0) {
 #' @rdname renderTags
 #' @export
 doRenderTags <- function(x, indent = 0) {
-  # The text that is written to this connWriter will be converted to
-  # UTF-8 using enc2utf8. The rendered output will always be UTF-8
-  # encoded.
-  #
-  # We use a file() here instead of textConnection() or paste/c to
-  # avoid the overhead of copying, which is huge for moderately
-  # large numbers of calls to connWriter(). Generally when you want
-  # to incrementally build up a long string out of immutable ones,
-  # you want to use a mutable/growable string buffer of some kind;
-  # since R doesn't have something like that (that I know of),
-  # file() is the next best thing.
-  conn <- file(open="w+b", encoding = "UTF-8")
-  # Track how many bytes we write, so we can read in the right amount
-  # later with readChar.
-  bytes <- 0
-
-  connWriter <- function(text) {
-    raw <- charToRaw(enc2utf8(text))
-    bytes <<- bytes + length(raw)
-    # This is actually writing UTF-8 bytes, not chars
-    writeBin(raw, conn)
-  }
-
-  htmlResult <- tryCatch(
-    {
-      tagWrite(x, connWriter, indent)
-      flush(conn)
-
-      # Strip off trailing \n (which is always there) but make sure not to
-      # specify a negative number of chars.
-      bytes <- max(bytes - 1, 0)
-      readChar(conn, bytes, useBytes = TRUE)
-    },
-    finally = close(conn)
-  )
-  Encoding(htmlResult) <- "UTF-8"
-  return(HTML(htmlResult))
+  textWriter <- WSTextWriter()
+  tagWrite(x, textWriter, indent)
+  # Strip off trailing \n (if present?)
+  textWriter$eatWS()
+  HTML(textWriter$readAll())
 }
 
 # Walk a tree of tag objects, rewriting objects according to func.
@@ -688,7 +713,16 @@ findDependencies <- function(tags, tagify = TRUE) {
 #'   attributes, and positional arguments become children. Valid children are
 #'   tags, single-character character vectors (which become text nodes), raw
 #'   HTML (see \code{\link{HTML}}), and \code{html_dependency} objects. You can
-#'   also pass lists that contain tags, text nodes, or HTML.
+#'   also pass lists that contain tags, text nodes, or HTML. To use boolean
+#'   attributes, use a named argument with a \code{NA} value. (see example)
+#' @param .noWS A character vector used to omit some of the whitespace that
+#'   would normally be written around this tag. Valid options include
+#'   \code{before}, \code{after}, \code{outside}, \code{after-begin}, and
+#'   \code{before-end}. Any number of these options can be specified.
+#' @references \itemize{
+#'    \item W3C html specification about boolean attributes
+#'    \url{https://www.w3.org/TR/html5/infrastructure.html#sec-boolean-attributes}
+#'  }
 #' @export tags
 #' @examples
 #' doc <- tags$html(
@@ -705,124 +739,160 @@ findDependencies <- function(tags, tagify = TRUE) {
 #'   )
 #' )
 #' cat(as.character(doc))
+#'
+#' # create an html5 audio tag with controls.
+#' # controls is a boolean attributes
+#' audio_tag <- tags$audio(
+#'   controls = NA,
+#'   tags$source(
+#'     src = "myfile.wav",
+#'     type = "audio/wav"
+#'   )
+#' )
+#' cat(as.character(audio_tag))
+#'
+#' # suppress the whitespace between tags
+#' oneline <- tags$span(
+#'   tags$strong("I'm strong", .noWS="outside")
+#' )
+#' cat(as.character(oneline))
 NULL
+
+
+known_tags <- c(
+  "a",
+  "abbr",
+  "address",
+  "area",
+  "article",
+  "aside",
+  "audio",
+  "b",
+  "base",
+  "bdi",
+  "bdo",
+  "blockquote",
+  "body",
+  "br",
+  "button",
+  "canvas",
+  "caption",
+  "cite",
+  "code",
+  "col",
+  "colgroup",
+  "command",
+  "data",
+  "datalist",
+  "dd",
+  "del",
+  "details",
+  "dfn",
+  "dialog",
+  "div",
+  "dl",
+  "dt",
+  "em",
+  "embed",
+  "eventsource",
+  "fieldset",
+  "figcaption",
+  "figure",
+  "footer",
+  "form",
+  "h1",
+  "h2",
+  "h3",
+  "h4",
+  "h5",
+  "h6",
+  "head",
+  "header",
+  "hgroup",
+  "hr",
+  "html",
+  "i",
+  "iframe",
+  "img",
+  "input",
+  "ins",
+  "kbd",
+  "keygen",
+  "label",
+  "legend",
+  "li",
+  "link",
+  "main",
+  "mark",
+  "map",
+  "menu",
+  "meta",
+  "meter",
+  "nav",
+  "noscript",
+  "object",
+  "ol",
+  "optgroup",
+  "option",
+  "output",
+  "p",
+  "param",
+  "picture",
+  "pre",
+  "progress",
+  "q",
+  "rp",
+  "rt",
+  "ruby",
+  "s",
+  "samp",
+  "script",
+  "section",
+  "select",
+  "small",
+  "source",
+  "span",
+  "strong",
+  "style",
+  "sub",
+  "summary",
+  "sup",
+  "table",
+  "tbody",
+  "td",
+  "template",
+  "textarea",
+  "tfoot",
+  "th",
+  "thead",
+  "time",
+  "title",
+  "tr",
+  "track",
+  "u",
+  "ul",
+  "var",
+  "video",
+  "wbr"
+)
+names(known_tags) <- known_tags
 
 #' @rdname builder
 #' @format NULL
 #' @docType NULL
 #' @keywords NULL
-tags <- list(
-  a = function(...) tag("a", list(...)),
-  abbr = function(...) tag("abbr", list(...)),
-  address = function(...) tag("address", list(...)),
-  area = function(...) tag("area", list(...)),
-  article = function(...) tag("article", list(...)),
-  aside = function(...) tag("aside", list(...)),
-  audio = function(...) tag("audio", list(...)),
-  b = function(...) tag("b", list(...)),
-  base = function(...) tag("base", list(...)),
-  bdi = function(...) tag("bdi", list(...)),
-  bdo = function(...) tag("bdo", list(...)),
-  blockquote = function(...) tag("blockquote", list(...)),
-  body = function(...) tag("body", list(...)),
-  br = function(...) tag("br", list(...)),
-  button = function(...) tag("button", list(...)),
-  canvas = function(...) tag("canvas", list(...)),
-  caption = function(...) tag("caption", list(...)),
-  cite = function(...) tag("cite", list(...)),
-  code = function(...) tag("code", list(...)),
-  col = function(...) tag("col", list(...)),
-  colgroup = function(...) tag("colgroup", list(...)),
-  command = function(...) tag("command", list(...)),
-  data = function(...) tag("data", list(...)),
-  datalist = function(...) tag("datalist", list(...)),
-  dd = function(...) tag("dd", list(...)),
-  del = function(...) tag("del", list(...)),
-  details = function(...) tag("details", list(...)),
-  dfn = function(...) tag("dfn", list(...)),
-  div = function(...) tag("div", list(...)),
-  dl = function(...) tag("dl", list(...)),
-  dt = function(...) tag("dt", list(...)),
-  em = function(...) tag("em", list(...)),
-  embed = function(...) tag("embed", list(...)),
-  eventsource = function(...) tag("eventsource", list(...)),
-  fieldset = function(...) tag("fieldset", list(...)),
-  figcaption = function(...) tag("figcaption", list(...)),
-  figure = function(...) tag("figure", list(...)),
-  footer = function(...) tag("footer", list(...)),
-  form = function(...) tag("form", list(...)),
-  h1 = function(...) tag("h1", list(...)),
-  h2 = function(...) tag("h2", list(...)),
-  h3 = function(...) tag("h3", list(...)),
-  h4 = function(...) tag("h4", list(...)),
-  h5 = function(...) tag("h5", list(...)),
-  h6 = function(...) tag("h6", list(...)),
-  head = function(...) tag("head", list(...)),
-  header = function(...) tag("header", list(...)),
-  hgroup = function(...) tag("hgroup", list(...)),
-  hr = function(...) tag("hr", list(...)),
-  html = function(...) tag("html", list(...)),
-  i = function(...) tag("i", list(...)),
-  iframe = function(...) tag("iframe", list(...)),
-  img = function(...) tag("img", list(...)),
-  input = function(...) tag("input", list(...)),
-  ins = function(...) tag("ins", list(...)),
-  kbd = function(...) tag("kbd", list(...)),
-  keygen = function(...) tag("keygen", list(...)),
-  label = function(...) tag("label", list(...)),
-  legend = function(...) tag("legend", list(...)),
-  li = function(...) tag("li", list(...)),
-  link = function(...) tag("link", list(...)),
-  mark = function(...) tag("mark", list(...)),
-  map = function(...) tag("map", list(...)),
-  menu = function(...) tag("menu", list(...)),
-  meta = function(...) tag("meta", list(...)),
-  meter = function(...) tag("meter", list(...)),
-  nav = function(...) tag("nav", list(...)),
-  noscript = function(...) tag("noscript", list(...)),
-  object = function(...) tag("object", list(...)),
-  ol = function(...) tag("ol", list(...)),
-  optgroup = function(...) tag("optgroup", list(...)),
-  option = function(...) tag("option", list(...)),
-  output = function(...) tag("output", list(...)),
-  p = function(...) tag("p", list(...)),
-  param = function(...) tag("param", list(...)),
-  pre = function(...) tag("pre", list(...)),
-  progress = function(...) tag("progress", list(...)),
-  q = function(...) tag("q", list(...)),
-  ruby = function(...) tag("ruby", list(...)),
-  rp = function(...) tag("rp", list(...)),
-  rt = function(...) tag("rt", list(...)),
-  s = function(...) tag("s", list(...)),
-  samp = function(...) tag("samp", list(...)),
-  script = function(...) tag("script", list(...)),
-  section = function(...) tag("section", list(...)),
-  select = function(...) tag("select", list(...)),
-  small = function(...) tag("small", list(...)),
-  source = function(...) tag("source", list(...)),
-  span = function(...) tag("span", list(...)),
-  strong = function(...) tag("strong", list(...)),
-  style = function(...) tag("style", list(...)),
-  sub = function(...) tag("sub", list(...)),
-  summary = function(...) tag("summary", list(...)),
-  sup = function(...) tag("sup", list(...)),
-  table = function(...) tag("table", list(...)),
-  tbody = function(...) tag("tbody", list(...)),
-  td = function(...) tag("td", list(...)),
-  textarea = function(...) tag("textarea", list(...)),
-  tfoot = function(...) tag("tfoot", list(...)),
-  th = function(...) tag("th", list(...)),
-  thead = function(...) tag("thead", list(...)),
-  time = function(...) tag("time", list(...)),
-  title = function(...) tag("title", list(...)),
-  tr = function(...) tag("tr", list(...)),
-  track = function(...) tag("track", list(...)),
-  u = function(...) tag("u", list(...)),
-  ul = function(...) tag("ul", list(...)),
-  var = function(...) tag("var", list(...)),
-  video = function(...) tag("video", list(...)),
-  wbr = function(...) tag("wbr", list(...))
-)
+#' @import rlang
+tags <- lapply(known_tags, function(tagname) {
+  function(..., .noWS=NULL) {
+    validateNoWS(.noWS)
+    contents <- dots_list(...)
+    tag(tagname, contents, .noWS=.noWS)
+  }
+})
+
+# known_tags is no longer needed, so remove it.
+rm(known_tags)
+
 
 #' Mark Characters as HTML
 #'
@@ -1006,7 +1076,7 @@ as.tags.html_dependency <- function(x, ...) {
 #'
 #' @export
 htmlPreserve <- function(x) {
-  x <- paste(x, collapse = "\r\n")
+  x <- paste(x, collapse = "\n")
   if (nzchar(x))
     sprintf("<!--html_preserve-->%s<!--/html_preserve-->", x)
   else
@@ -1207,71 +1277,71 @@ knit_print.shiny.tag.list <- knit_print.shiny.tag
 
 #' @rdname builder
 #' @export
-p <- function(...) tags$p(...)
+p <- tags$p
 
 #' @rdname builder
 #' @export
-h1 <- function(...) tags$h1(...)
+h1 <- tags$h1
 
 #' @rdname builder
 #' @export
-h2 <- function(...) tags$h2(...)
+h2 <- tags$h2
 
 #' @rdname builder
 #' @export
-h3 <- function(...) tags$h3(...)
+h3 <- tags$h3
 
 #' @rdname builder
 #' @export
-h4 <- function(...) tags$h4(...)
+h4 <- tags$h4
 
 #' @rdname builder
 #' @export
-h5 <- function(...) tags$h5(...)
+h5 <- tags$h5
 
 #' @rdname builder
 #' @export
-h6 <- function(...) tags$h6(...)
+h6 <- tags$h6
 
 #' @rdname builder
 #' @export
-a <- function(...) tags$a(...)
+a <- tags$a
 
 #' @rdname builder
 #' @export
-br <- function(...) tags$br(...)
+br <- tags$br
 
 #' @rdname builder
 #' @export
-div <- function(...) tags$div(...)
+div <- tags$div
 
 #' @rdname builder
 #' @export
-span <- function(...) tags$span(...)
+span <- tags$span
 
 #' @rdname builder
 #' @export
-pre <- function(...) tags$pre(...)
+pre <- tags$pre
 
 #' @rdname builder
 #' @export
-code <- function(...) tags$code(...)
+code <- tags$code
 
 #' @rdname builder
 #' @export
-img <- function(...) tags$img(...)
+img <- tags$img
 
 #' @rdname builder
 #' @export
-strong <- function(...) tags$strong(...)
+strong <- tags$strong
 
 #' @rdname builder
 #' @export
-em <- function(...) tags$em(...)
+em <- tags$em
 
 #' @rdname builder
 #' @export
-hr <- function(...) tags$hr(...)
+hr <- tags$hr
 
 #' Include Content From a File
 #'
@@ -1291,7 +1361,7 @@ hr <- function(...) tags$hr(...)
 #' @export
 includeHTML <- function(path) {
   lines <- readLines(path, warn=FALSE, encoding='UTF-8')
-  return(HTML(paste8(lines, collapse='\r\n')))
+  return(HTML(paste8(lines, collapse='\n')))
 }
 
 #' @note \code{includeText} escapes its contents, but does no other processing.
@@ -1304,7 +1374,7 @@ includeHTML <- function(path) {
 #' @export
 includeText <- function(path) {
   lines <- readLines(path, warn=FALSE, encoding='UTF-8')
-  return(paste8(lines, collapse='\r\n'))
+  return(paste8(lines, collapse='\n'))
 }
 
 #' @note The \code{includeMarkdown} function requires the \code{markdown}
@@ -1326,14 +1396,14 @@ includeCSS <- function(path, ...) {
   if (is.null(args$type))
     args$type <- 'text/css'
   return(do.call(tags$style,
-    c(list(HTML(paste8(lines, collapse='\r\n'))), args)))
+    c(list(HTML(paste8(lines, collapse='\n'))), args)))
 }
 
 #' @rdname include
 #' @export
 includeScript <- function(path, ...) {
   lines <- readLines(path, warn=FALSE, encoding='UTF-8')
-  return(tags$script(HTML(paste8(lines, collapse='\r\n')), ...))
+  return(tags$script(HTML(paste8(lines, collapse='\n')), ...))
 }
 
 #' Include content only once
@@ -1369,9 +1439,11 @@ is.singleton <- function(x) {
 #' number plus a suffix of \code{"px"}.
 #'
 #' Single element character vectors must be \code{"auto"} or \code{"inherit"},
-#' or a number. If the number has a suffix, it must be valid: \code{px},
-#' \code{\%}, \code{em}, \code{pt}, \code{in}, \code{cm}, \code{mm}, \code{ex},
-#' \code{pc}, \code{vh}, \code{vw}, \code{vmin}, or \code{vmax}.
+#' a number, or a length calculated by the \code{"calc"} CSS function.
+#' If the number has a suffix, it must be valid: \code{px},
+#' \code{\%}, \code{ch}, \code{em}, \code{rem}, \code{pt}, \code{in}, \code{cm},
+#' \code{mm}, \code{ex}, \code{pc}, \code{vh}, \code{vw}, \code{vmin}, or
+#' \code{vmax}.
 #' If the number has no suffix, the suffix \code{"px"} is appended.
 #'
 #'
@@ -1398,7 +1470,7 @@ validateCssUnit <- function(x) {
     x <- as.numeric(x)
 
   pattern <-
-    "^(auto|inherit|((\\.\\d+)|(\\d+(\\.\\d+)?))(%|in|cm|mm|em|ex|pt|pc|px|vh|vw|vmin|vmax))$"
+    "^(auto|inherit|calc\\(.*\\)|((\\.\\d+)|(\\d+(\\.\\d+)?))(%|in|cm|mm|ch|em|ex|rem|pt|pc|px|vh|vw|vmin|vmax))$"
 
   if (is.character(x) &&
       !grepl(pattern, x)) {
