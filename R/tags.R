@@ -259,7 +259,7 @@ tagList <- function(...) {
 #' @rdname tag
 #' @export
 tagAppendAttributes <- function(tag, ...) {
-  tag$attribs <- c(tag$attribs, list(...))
+  tag$attribs <- c(tag$attribs, dropNullsOrEmpty(dots_list(...)))
   tag
 }
 
@@ -299,14 +299,14 @@ tagAppendChild <- function(tag, child) {
 #' @rdname tag
 #' @export
 tagAppendChildren <- function(tag, ..., list = NULL) {
-  tag$children <- c(tag$children, c(list(...), list))
+  tag$children <- unname(c(tag$children, c(dots_list(...), list)))
   tag
 }
 
 #' @rdname tag
 #' @export
 tagSetChildren <- function(tag, ..., list = NULL) {
-  tag$children <- c(list(...), list)
+  tag$children <- unname(c(dots_list(...), list))
   tag
 }
 
@@ -387,7 +387,7 @@ isTagList <- function(x) {
   is.list(x) && (inherits(x, "shiny.tag.list") || identical(class(x), "list"))
 }
 
-noWSOptions <- c("before", "after", "after-begin", "before-end", "outside")
+noWSOptions <- c("before", "after", "after-begin", "before-end", "outside", "inside")
 # Ensure that the provided `.noWS` string contains only valid options
 validateNoWS <- function(.noWS){
   if (!all(.noWS %in% noWSOptions)){
@@ -417,7 +417,14 @@ tagWrite <- function(tag, textWriter, indent=0, eol = "\n") {
 
   # Check if it's just text (may either be plain-text or HTML)
   if (is.character(tag)) {
+    .noWS <- attr(tag, "noWS", exact = TRUE)
+    if ("before" %in% .noWS || "outside" %in% .noWS) {
+      textWriter$eatWS()
+    }
     textWriter$write(normalizeText(tag))
+    if ("after" %in% .noWS || "outside" %in% .noWS) {
+      textWriter$eatWS()
+    }
     textWriter$writeWS(eol)
     return (NULL)
   }
@@ -717,8 +724,9 @@ findDependencies <- function(tags, tagify = TRUE) {
 #'   attributes, use a named argument with a \code{NA} value. (see example)
 #' @param .noWS A character vector used to omit some of the whitespace that
 #'   would normally be written around this tag. Valid options include
-#'   \code{before}, \code{after}, \code{outside}, \code{after-begin}, and
-#'   \code{before-end}. Any number of these options can be specified.
+#'   \code{before}, \code{after}, \code{outside}, \code{after-begin},
+#'   \code{before-end}, and \code{inside}. Any number of these options can be
+#'   specified.
 #' @references \itemize{
 #'    \item W3C html specification about boolean attributes
 #'    \url{https://www.w3.org/TR/html5/infrastructure.html#sec-boolean-attributes}
@@ -759,122 +767,10 @@ findDependencies <- function(tags, tagify = TRUE) {
 NULL
 
 
-known_tags <- c(
-  "a",
-  "abbr",
-  "address",
-  "area",
-  "article",
-  "aside",
-  "audio",
-  "b",
-  "base",
-  "bdi",
-  "bdo",
-  "blockquote",
-  "body",
-  "br",
-  "button",
-  "canvas",
-  "caption",
-  "cite",
-  "code",
-  "col",
-  "colgroup",
-  "command",
-  "data",
-  "datalist",
-  "dd",
-  "del",
-  "details",
-  "dfn",
-  "dialog",
-  "div",
-  "dl",
-  "dt",
-  "em",
-  "embed",
-  "eventsource",
-  "fieldset",
-  "figcaption",
-  "figure",
-  "footer",
-  "form",
-  "h1",
-  "h2",
-  "h3",
-  "h4",
-  "h5",
-  "h6",
-  "head",
-  "header",
-  "hgroup",
-  "hr",
-  "html",
-  "i",
-  "iframe",
-  "img",
-  "input",
-  "ins",
-  "kbd",
-  "keygen",
-  "label",
-  "legend",
-  "li",
-  "link",
-  "main",
-  "mark",
-  "map",
-  "menu",
-  "meta",
-  "meter",
-  "nav",
-  "noscript",
-  "object",
-  "ol",
-  "optgroup",
-  "option",
-  "output",
-  "p",
-  "param",
-  "picture",
-  "pre",
-  "progress",
-  "q",
-  "rp",
-  "rt",
-  "ruby",
-  "s",
-  "samp",
-  "script",
-  "section",
-  "select",
-  "small",
-  "source",
-  "span",
-  "strong",
-  "style",
-  "sub",
-  "summary",
-  "sup",
-  "table",
-  "tbody",
-  "td",
-  "template",
-  "textarea",
-  "tfoot",
-  "th",
-  "thead",
-  "time",
-  "title",
-  "tr",
-  "track",
-  "u",
-  "ul",
-  "var",
-  "video",
-  "wbr"
-)
+
+# Use `known_tags` from `known_tags.R`
+# Then remove `known_tags` once done creating tag functions
+#' @include known_tags.R
 names(known_tags) <- known_tags
 
 #' @rdname builder
@@ -902,6 +798,10 @@ rm(known_tags)
 #' @param text The text value to mark with HTML
 #' @param ... Any additional values to be converted to character and
 #'   concatenated together
+#' @param .noWS Character vector used to omit some of the whitespace that would
+#'   normally be written around this HTML. Valid options include \code{before},
+#'   \code{after}, and \code{outside} (equivalent to \code{before} and
+#'   \code{end}).
 #' @return The same value, but marked as HTML.
 #'
 #' @examples
@@ -909,10 +809,11 @@ rm(known_tags)
 #' cat(as.character(el))
 #'
 #' @export
-HTML <- function(text, ...) {
-  htmlText <- c(text, as.character(list(...)))
+HTML <- function(text, ..., .noWS = NULL) {
+  htmlText <- c(text, as.character(dots_list(...)))
   htmlText <- paste8(htmlText, collapse=" ")
   attr(htmlText, "html") <- TRUE
+  attr(htmlText, "noWS") <- .noWS
   class(htmlText) <- c("html", "character")
   htmlText
 }
@@ -994,7 +895,7 @@ flattenTags <- function(x) {
 #'
 #' An S3 method for converting arbitrary values to a value that can be used as
 #' the child of a tag or \code{tagList}. The default implementation simply calls
-#' \code{\link[base]{as.character}}.
+#' \code{\link{as.character}}.
 #'
 #' @param x Object to be converted.
 #' @param ... Any additional parameters.
@@ -1155,11 +1056,18 @@ extractPreserveChunks <- function(strval) {
     strval <- paste(strval, collapse = "\n")
 
   # matches contains the index of all the start and end markers
-  matches <- gregexpr(pattern, strval)[[1]]
-  lengths <- attr(matches, "match.length", TRUE)
+  startmatches <- gregexpr(startmarker, strval, fixed = TRUE)[[1]]
+  endmatches <- gregexpr(endmarker, strval, fixed = TRUE)[[1]]
+  matches <- c(startmatches, endmatches)
+  o <- order(matches)
+  matches <- matches[o]
+  lengths <- c(
+    attr(startmatches, "match.length", TRUE),
+    attr(endmatches, "match.length", TRUE)
+  )[o]
 
   # No markers? Just return.
-  if (matches[[1]] == -1)
+  if (unique(matches)[[1]] == -1)
     return(list(value = strval, chunks = character(0)))
 
   # If TRUE, it's a start; if FALSE, it's an end
@@ -1392,7 +1300,7 @@ includeMarkdown <- function(path) {
 #' @export
 includeCSS <- function(path, ...) {
   lines <- readLines(path, warn=FALSE, encoding='UTF-8')
-  args <- list(...)
+  args <- dots_list(...)
   if (is.null(args$type))
     args$type <- 'text/css'
   return(do.call(tags$style,
@@ -1519,9 +1427,9 @@ validateCssUnit <- function(x) {
 #'
 #' @export
 css <- function(..., collapse_ = "") {
-  props <- list(...)
+  props <- dots_list(...)
   if (length(props) == 0) {
-    return("")
+    return(NULL)
   }
 
   if (is.null(names(props)) || any(names(props) == "")) {
@@ -1534,7 +1442,7 @@ css <- function(..., collapse_ = "") {
   # Drop null args
   props <- props[!sapply(props, empty)]
   if (length(props) == 0) {
-    return("")
+    return(NULL)
   }
 
   # Replace all '.' and '_' in property names to '-'

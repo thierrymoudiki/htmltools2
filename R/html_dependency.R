@@ -196,7 +196,7 @@ attachDependencies <- function(x, value, append = FALSE) {
 #' @seealso \code{\link[htmltools]{htmlDependency}}
 #' @export
 suppressDependencies <- function(...) {
-  lapply(list(...), function(name) {
+  lapply(dots_list(...), function(name) {
     attachDependencies(
       character(0),
       htmlDependency(name, "9999", c(href = ""))
@@ -323,7 +323,7 @@ copyDependencyToDir <- function(dependency, outputDir, mustWork = TRUE) {
       dir.create(dirname(to), recursive = TRUE)
     if (isdir && !dir_exists(to))
       dir.create(to)
-    file.copy(from, to, overwrite = TRUE, recursive = isdir)
+    file.copy(from, to, overwrite = TRUE, recursive = isdir, copy.mode = FALSE)
   }, srcfiles, destfiles, isdir)
 
   dependency$src$file <- normalizePath(target_dir, "/", TRUE)

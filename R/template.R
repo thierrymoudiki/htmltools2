@@ -18,7 +18,6 @@
 #' @seealso \code{\link{renderDocument}}
 #' @export
 #' @useDynLib htmltools, .registration = TRUE
-#' @importFrom Rcpp sourceCpp
 htmlTemplate <- function(filename = NULL, ..., text_ = NULL, document_ = "auto") {
   if (!xor(is.null(filename), is.null(text_))) {
     stop("htmlTemplate requires either `filename` or `text_`.")
@@ -32,12 +31,12 @@ htmlTemplate <- function(filename = NULL, ..., text_ = NULL, document_ = "auto")
     html <- enc2utf8(text_)
   }
 
-  pieces <- template_dfa(html)
+  pieces <- .Call(template_dfa, html)
   Encoding(pieces) <- "UTF-8"
 
   # Create environment to evaluate code, as a child of the global env. This
   # environment gets the ... arguments assigned as variables.
-  vars <- list(...)
+  vars <- dots_list(...)
   if ("headContent" %in% names(vars)) {
     stop("Can't use reserved argument name 'headContent'.")
   }
@@ -51,11 +50,8 @@ htmlTemplate <- function(filename = NULL, ..., text_ = NULL, document_ = "auto")
     FUN = function(piece, isCode) {
       if (isCode) {
         eval(parse(text = piece), env)
-      } else if (piece == "") {
-        # Don't add leading/trailing '\n' if empty HTML string.
-        NULL
       } else {
-        HTML(piece)
+        HTML(piece, .noWS = "outside")
       }
     },
     SIMPLIFY = FALSE
