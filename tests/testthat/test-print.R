@@ -62,3 +62,40 @@ test_that("Special characters are not re-encoded", {
     }
   )
 })
+
+
+test_that("save_html() language parameter is set", {
+  output <- tempfile(fileext = ".html")
+  # test for default
+  save_html("<h2>Howdy</h2>", output)
+  output_read <- readLines(output)
+  expect_true(
+    grepl("<html lang=\"en\">", paste(output_read, collapse = " "))
+  )
+  # test for fr
+  save_html("<h2>Howdy</h2>", output, lang = "fr")
+  output_read <- readLines(output)
+  expect_true(
+    grepl("<html lang=\"fr\">", paste(output_read, collapse = " "))
+  )
+})
+
+test_that("save_html() can write to subdirectories", {
+  tmpDir <- tempfile()
+  dir.create(tmpDir)
+  withr::local_dir(tmpDir)
+  dir.create("foo")
+  save_html(tags$h2("Howdy"), "foo/bar.html")
+  expect_true(
+    grepl("<h2>Howdy</h2>", paste(readLines("foo/bar.html"), collapse = " "))
+  )
+})
+
+test_that("save_html() can write to a file connection", {
+  f <- file()
+  on.exit(close(f), add = TRUE)
+  save_html(tags$h2("Howdy"), f)
+  expect_true(
+    grepl("<h2>Howdy</h2>", paste(readLines(f), collapse = " "))
+  )
+})
