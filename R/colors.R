@@ -18,7 +18,6 @@
 #'   to prevent the alpha channel from being discarded).
 #'
 #' @examples
-#'
 #' parseCssColors(c(
 #'   "#0d6efd",
 #'   "#DC35457F",
@@ -27,7 +26,6 @@
 #'   "hsl(261, 51%, 51%)",
 #'   "cornflowerblue"
 #' ))
-#' @md
 #' @export
 parseCssColors <- function(str, mustWork = TRUE) {
   # Logic below assumes a character string with non-missing values

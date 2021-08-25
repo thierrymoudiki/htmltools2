@@ -61,19 +61,19 @@ source.
 Capture a plot as a self-contained \verb{<img>} tag
 }
 \examples{
-
 img <- plotTag({
   plot(cars)
 }, "A plot of the 'cars' dataset", width = 375, height = 275)
 
 if (interactive()) img
 
-
-svg <- plotTag(plot(pressure), "A plot of the 'pressure' dataset",
-  device = grDevices::svg, width = 375, height = 275, pixelratio = 1/72,
-  mimeType = "image/svg+xml")
-
-if (interactive()) svg
+if (interactive() && capabilities("cairo")) {
+  plotTag(
+    plot(pressure), "A plot of the 'pressure' dataset",
+    device = grDevices::svg, width = 375, height = 275, pixelratio = 1/72,
+    mimeType = "image/svg+xml"
+  )
+}
 
 }
 \seealso{

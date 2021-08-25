@@ -17,9 +17,7 @@
 #' @seealso [plotTag()] saves plots as a self-contained `<img>`
 #'   tag.
 #'
-#' @md
 #' @examples
-#'
 #' # Default settings
 #' res <- capturePlot(plot(cars))
 #'
@@ -133,21 +131,20 @@ capturePlot <- function(expr, filename = tempfile(fileext = ".png"),
 #'
 #' @seealso [capturePlot()] saves plots as an image file.
 #'
-#' @md
 #' @examples
-#'
 #' img <- plotTag({
 #'   plot(cars)
 #' }, "A plot of the 'cars' dataset", width = 375, height = 275)
 #'
 #' if (interactive()) img
 #'
-#'
-#' svg <- plotTag(plot(pressure), "A plot of the 'pressure' dataset",
-#'   device = grDevices::svg, width = 375, height = 275, pixelratio = 1/72,
-#'   mimeType = "image/svg+xml")
-#'
-#' if (interactive()) svg
+#' if (interactive() && capabilities("cairo")) {
+#'   plotTag(
+#'     plot(pressure), "A plot of the 'pressure' dataset",
+#'     device = grDevices::svg, width = 375, height = 275, pixelratio = 1/72,
+#'     mimeType = "image/svg+xml"
+#'   )
+#' }
 #'
 #' @export
 plotTag <- function(expr, alt, device = defaultPngDevice(), width = 400, height = 400,
@@ -191,7 +188,6 @@ plotTag <- function(expr, alt, device = defaultPngDevice(), width = 400, height 
 #'
 #' @return A graphics device function.
 #'
-#' @md
 #' @export
 defaultPngDevice <- function() {
   if (capabilities("aqua")) {

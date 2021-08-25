@@ -58,6 +58,70 @@ test_that("withTags works", {
   expect_identical(tags$p(100), foo())
 })
 
+test_that(".noWS argument of withTags()", {
+  get_noWS <- function(tag) tag[[".noWS"]]
+
+  default <- withTags(
+    div(
+      class = "myclass",
+      h3("header"),
+      p("One", strong(span("two")), "three")
+    )
+  )
+
+  expect_null(get_noWS(default))
+  expect_null(get_noWS(default$children[[1]]))
+  expect_null(get_noWS(default$children[[2]]))
+  expect_null(get_noWS(default$children[[2]]$children[[2]]))
+  expect_null(get_noWS(default$children[[2]]$children[[2]]$children[[1]]))
+
+  default_special <- withTags(
+    div(
+      class = "myclass",
+      h3("header", .noWS = "after-begin"),
+      p("One", strong(span("two")), "three", .noWS = "before-end")
+    )
+  )
+
+  expect_null(get_noWS(default_special))
+  expect_equal(get_noWS(default_special$children[[1]]), "after-begin")
+  expect_equal(get_noWS(default_special$children[[2]]), "before-end")
+  expect_null(get_noWS(default_special$children[[2]]$children[[2]]))
+  expect_null(get_noWS(default_special$children[[2]]$children[[2]]$children[[1]]))
+
+  all_same_noWS <- c("outside", "inside")
+  all_same <- withTags(
+    div(
+      class = "myclass",
+      h3("header"),
+      p("One", strong(span("two")), "three")
+    ),
+    .noWS = all_same_noWS
+  )
+
+  expect_equal(get_noWS(all_same), all_same_noWS)
+  expect_equal(get_noWS(all_same$children[[1]]), all_same_noWS)
+  expect_equal(get_noWS(all_same$children[[2]]), all_same_noWS)
+  expect_equal(get_noWS(all_same$children[[2]]$children[[2]]), all_same_noWS)
+  expect_equal(get_noWS(all_same$children[[2]]$children[[2]]$children[[1]]), all_same_noWS)
+
+  varied_default <- "outside"
+  varied_special <- "inside"
+  varied <- withTags(
+    div(
+      class = "myclass",
+      h3("header"),
+      p("One", strong(span("two"), .noWS = varied_special), "three")
+    ),
+    .noWS = varied_default
+  )
+
+  expect_equal(get_noWS(varied), varied_default)
+  expect_equal(get_noWS(varied$children[[1]]), varied_default)
+  expect_equal(get_noWS(varied$children[[2]]), varied_default)
+  expect_equal(get_noWS(varied$children[[2]]$children[[2]]), varied_special)
+  expect_equal(get_noWS(varied$children[[2]]$children[[2]]$children[[1]]), varied_default)
+})
 
 test_that("HTML escaping in tags", {
   # Regular text is escaped
@@ -399,6 +463,25 @@ test_that("Adding attributes to tags", {
   )
 })
 
+test_that("Adding unnamed attributes creates a warning", {
+  expect_error(
+    tagAppendAttributes(
+      tags$div(),
+      "value"
+    ),
+    "include an attribute name"
+  )
+
+  x <- div()
+  x$attribs[[1]] <- "value"
+  expect_error(
+    print(x),
+    "name all of your attribute values"
+  )
+})
+
+
+
 test_that("Testing for attributes on tags", {
   t1 <- tags$div("foo", class = "c1", class = "c2", id = "foo")
 
@@ -524,6 +607,32 @@ test_that("NA attributes are rendered correctly", {
     as.character(tags$div("text", class = "a", foo = "b", foo = NA, foo = NA, foo = "c")),
     '<div class="a" foo="b c">text</div>'
   )
+})
+
+test_that("NA attributes are retrieved correctly", {
+  expect_foo_attr <- function(y, ...) {
+    testTag <- tags$div("text", ...)
+    expect_identical(
+      tagGetAttribute(testTag, "foo"),
+      y
+    )
+  }
+  expect_foo_attr(NA, foo = NA)
+  expect_foo_attr(NA, class = "a", foo = NA)
+  expect_foo_attr(NA, class = "a", foo = NA, class = "b")
+
+  # Multiple NA's are coalesced
+  expect_foo_attr(NA, class = "a", foo = NA, class = "b", foo = NA)
+
+  # A non-NA value supersedes NA
+  expect_foo_attr("b", class = "a", foo = NA, foo = "b")
+  expect_foo_attr("b c", class = "a", foo = "b", foo = NA, foo = "c")
+  expect_foo_attr("b c", class = "a", foo = "b", foo = NA, foo = NA, foo = "c")
+
+  # Non atomic value cause a list to be returned.
+  expect_foo_attr(list(list("b")), class = "a", foo = NA, foo = list("b"))
+  expect_foo_attr(list(list("b"), list("c")), class = "a", foo = list("b"), foo = NA, foo = list("c"))
+  expect_foo_attr(list("b", list("c")), class = "a", foo = "b", foo = NA, foo = NA, foo = list("c"))
 })
 
 test_that("Tag list tree is rendered in DOM tree order", {
@@ -892,4 +1001,155 @@ test_that("extractPreserveChunks works for emoji strings", {
     out$chunks,
     c('chunk2', 'chunk1')
   )
+})
+
+
+test_that("complicated class attributes are handled", {
+  x <- div(class = as.factor(letters)[1], class = "b c", class = c("d", "e f"))
+  expect_equal(
+    tagGetAttribute(x, "class"),
+    "a b c d e f"
+  )
+  expect_identical(
+    as.character(x),
+    "<div class=\"a b c d e f\"></div>"
+  )
+})
+
+
+test_that("html render method", {
+  local_edition(3)
+
+  # Have a place holder div and return a span instead
+  obj <- div("example", .renderHook = function(x) {
+    x$name <- "span"
+    x
+  })
+  expect_equal(obj$name, "div")
+  expect_snapshot(as.character(obj))
+
+  # Add a class to the tag
+  spanExtra <- tagAddRenderHook(obj, function(x) {
+    tagAppendAttributes(x, class = "extra")
+  })
+  expect_equal(spanExtra$name, "div")
+  expect_equal(spanExtra$attribs$class, NULL)
+  expect_snapshot(as.character(spanExtra))
+
+  # Replace the previous render method
+  # Should print a `div` with class `"extra"`
+  divExtra <- tagAddRenderHook(obj, replace = TRUE, function(x) {
+    tagAppendAttributes(x, class = "extra")
+  })
+  expect_equal(divExtra$attribs$class, NULL)
+  expect_snapshot(as.character(divExtra))
+
+  # Add more child tags
+  spanExtended <- tagAddRenderHook(obj, function(x) {
+    tagAppendChildren(x, tags$strong("bold text"))
+  })
+  expect_equal(spanExtended$name, "div")
+  expect_equal(spanExtended$children, obj$children)
+  expect_snapshot(as.character(spanExtended))
+
+  tagFuncExt <- tagAddRenderHook(obj, function(x) {
+    tagFunction(function() tagList(x, tags$p("test")) )
+  })
+  expect_equal(tagFuncExt$name, "div")
+  expect_equal(tagFuncExt$children, obj$children)
+  expect_snapshot(as.character(tagFuncExt))
+
+  # Add a new html dependency
+  newDep <- tagAddRenderHook(obj, function(x) {
+    fa <- htmlDependency(
+      "font-awesome", "4.5.0", c(href="shared/font-awesome"),
+      stylesheet = "css/font-awesome.min.css")
+    attachDependencies(x, fa, append = TRUE)
+  })
+  # Also add a jqueryui html dependency
+  htmlDependencies(newDep) <- htmlDependency(
+    "jqueryui", "1.11.4", c(href="shared/jqueryui"),
+    script = "jquery-ui.min.js")
+  expect_equal(newDep$name, "div")
+  expect_length(htmlDependencies(newDep), 1)
+  expect_snapshot(renderTags(newDep))
+
+  # Ignore the original tag and return something completely new.
+  newObj <- tagAddRenderHook(obj, function(x) {
+    tags$p("Something else")
+  })
+  expect_equal(newObj$name, "div")
+  expect_snapshot(as.character(newObj))
+})
+
+
+test_that(".cssSelector arg only applies changes to the selected elements", {
+  html <-
+    div(
+      class = "outer",
+      div(class = "inner", "text"),
+      span("TEXT")
+    )
+
+  expect_equal_tags(
+    tagAppendAttributes(html, id = "test"),
+    div(class = "outer", id = "test", div(class="inner", "text"), span("TEXT"))
+  )
+  expect_equal_tags(
+    tagAppendAttributes(html, id = "test", .cssSelector = ".inner"),
+    div(class = "outer", div(class = "inner", id = "test", "text"), span("TEXT"))
+  )
+
+  expect_equal_tags(
+    tagAppendChild(html, h1()),
+    div(class = "outer", div(class="inner", "text"), span("TEXT"), h1())
+  )
+  expect_equal_tags(
+    tagAppendChild(html, h1(), .cssSelector = ".inner"),
+    div(class = "outer", div(class = "inner", "text", h1()), span("TEXT"))
+  )
+
+  expect_equal_tags(
+    tagAppendChildren(html, h1(), h2()),
+    div(class = "outer", div(class="inner", "text"), span("TEXT"), h1(), h2())
+  )
+  expect_equal_tags(
+    tagAppendChildren(html, h1(), h2(), .cssSelector = ".inner"),
+    div(class = "outer", div(class = "inner", "text", h1(), h2()), span("TEXT"))
+  )
+
+  expect_equal_tags(
+    tagSetChildren(html, h1(), h2()),
+    div(class = "outer", h1(), h2())
+  )
+  expect_equal_tags(
+    tagSetChildren(html, h1(), h2(), .cssSelector = ".inner"),
+    div(class = "outer", div(class = "inner", h1(), h2()), span("TEXT"))
+  )
+
+  expect_equal_tags(
+    tagInsertChildren(html, h1(), h2(), after = 0),
+    div(class = "outer", h1(), h2(), div(class="inner", "text"), span("TEXT"))
+  )
+  expect_equal_tags(
+    tagInsertChildren(html, h1(), h2(), after = 0, .cssSelector = ".inner"),
+    div(class = "outer", div(class = "inner", h1(), h2(), "text"), span("TEXT"))
+  )
+})
+
+
+
+
+test_that("flattenTagAttribs", {
+  attribs <- list(
+    b = "1",
+    a = "2",
+    b = "3"
+  )
+
+  flatAttribs <- flattenTagAttribs(attribs)
+  # alpha sorted
+  expect_equal(names(flatAttribs), c("a", "b"))
+  # b values are collected
+  expect_equal(flatAttribs, list(a = "2", b = c("1", "3")))
 })
