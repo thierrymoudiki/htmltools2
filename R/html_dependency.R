@@ -85,6 +85,8 @@
 #'
 #' @seealso Use [attachDependencies()] to associate a list of
 #'   dependencies with the HTML it belongs with.
+#'   The shape of the `htmlDependency` object is described (in TypeScript code)
+#'   [here](https://github.com/rstudio/shiny/blob/474f1400/srcts/src/shiny/render.ts#L79-L115).
 #'
 #' @export
 htmlDependency <- function(name,
@@ -328,7 +330,7 @@ copyDependencyToDir <- function(dependency, outputDir, mustWork = TRUE) {
   }
   # resolve the relative file path to absolute path in package
   if (!is.null(dependency$package))
-    dir <- system.file(dir, package = dependency$package)
+    dir <- system_file(dir, package = dependency$package)
 
   if (length(outputDir) != 1 || outputDir %in% c("", "/"))
     stop('outputDir must be of length 1 and cannot be "" or "/"')
@@ -352,16 +354,29 @@ copyDependencyToDir <- function(dependency, outputDir, mustWork = TRUE) {
   # relatively safe to be removed recursively
   if (dir_exists(target_dir)) unlink(target_dir, recursive = TRUE)
   dir.create(target_dir)
+  dependency$src$file <- normalizePath(target_dir, "/", TRUE)
 
-  files <- if (dependency$all_files) list.files(dir) else {
-    unlist(dependency[c('script', 'stylesheet', 'attachment')])
+  if (dependency$all_files)
+    files <- list.files(dir)
+  else
+    files <- c(find_dep_filenames(dependency$script, "src"),
+               find_dep_filenames(dependency$stylesheet, "href"),
+               find_dep_filenames(dependency$attachment, "href"))
+
+  if (length(files) == 0) {
+    # This dependency doesn't include any files
+    # no need to copy and we can clean up the target directory
+    unlink(target_dir, recursive = TRUE)
+    return(dependency)
   }
+
   srcfiles <- file.path(dir, files)
-  if (any(!file.exists(srcfiles))) {
+  missing_srcfiles <- !file.exists(srcfiles)
+  if (any(missing_srcfiles)) {
     stop(
       sprintf(
         "Can't copy dependency files that don't exist: '%s'",
-        paste(srcfiles, collapse = "', '")
+        paste(srcfiles[missing_srcfiles], collapse = "', '")
       )
     )
   }
@@ -376,8 +391,6 @@ copyDependencyToDir <- function(dependency, outputDir, mustWork = TRUE) {
       dir.create(to)
     file.copy(from, to, overwrite = TRUE, recursive = isdir, copy.mode = FALSE)
   }, srcfiles, destfiles, isdir)
-
-  dependency$src$file <- normalizePath(target_dir, "/", TRUE)
 
   dependency
 }

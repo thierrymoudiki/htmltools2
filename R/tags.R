@@ -103,7 +103,7 @@ resolveDependencies <- function(dependencies, resolvePackageDir = TRUE) {
     dep <- deps[[sorted[[1]]]]
     if (resolvePackageDir && !is.null(dep$package)) {
       dir <- dep$src$file
-      if (!is.null(dir)) dep$src$file <- system.file(dir, package = dep$package)
+      if (!is.null(dir)) dep$src$file <- system_file(dir, package = dep$package)
       dep$package <- NULL
     }
     dep
@@ -1280,26 +1280,64 @@ flattenTags <- function(x) {
 # By not calling `as.tags(x)`, tagFunctions are not evaluated and other items
 # are not converted.
 flattenTagsRaw <- function(x) {
-  if (isTag(x) || isTagEnv(x)) {
+  relocateHtmlDeps <- function(z, type) {
+    zDeps <- htmlDependencies(z)
+    zDepsLen <- length(zDeps)
+    # Return early if there are no dependencies
+    if (zDepsLen == 0) return(z)
+
+    # Append the incoming html deps to z's children
+    # Perform position insert to not lose attrs on z/z$children
+    switch(type,
+      "tag" = {
+        children <- z[["children"]]
+        childrenLen <- length(children)
+        if (is.null(children)) {
+          z[["children"]] <- zDeps
+        } else {
+          z[["children"]][(childrenLen + 1):(childrenLen + zDepsLen)] <- zDeps
+        }
+      },
+      "tagList" = {
+        zLen <- length(z)
+        z[(zLen + 1):(zLen + zDepsLen)] <- zDeps
+      },
+      stop("unknown type: ", type)
+    )
+    # Remove html deps on z, as they are now in the children
+    htmlDependencies(z) <- NULL
+
+    z
+  }
+
+  if (isTagEnv(x)) {
+    # For tags, wrap them into a list (which will be unwrapped by caller)
+    list(x)
+  } else if (isTag(x)) {
+    # Append individual html deps as children elements.
+    # Attributes are eaisly lost when unlisted or collected.
+    # Instead, use the _newer_/stable approach of adding the html dep as a direct child
+    x <- relocateHtmlDeps(x, type = "tag")
     # For tags, wrap them into a list (which will be unwrapped by caller)
     list(x)
   } else if (isTagList(x)) {
-    if (length(x) == 0) {
-      # Empty lists are simply returned
-      x
-    } else {
-      # For items that are lists (but not tags), recurse
-      ret <- unlist(lapply(x, flattenTagsRaw), recursive = FALSE)
-      # Copy over attributes put on the original list (ex: html deps)
-      mostattributes(ret) <- attributes(x)
-      ret
-    }
+    # For items that are lists (but not tags), recurse
+    ret <- unlist(lapply(x, flattenTagsRaw), recursive = FALSE)
+    # Copy over attributes put on the original list (ex: html deps, class)
+    mostattributes(ret) <- attributes(x)
+    # Append individual html deps into the final list from the flattened tags
+    # It does not work out well to add attributes to `ret`, as the html deps are not found by findDependencies()
+    # Instead, use the _newer_/stable approach of adding the html dep as a direct child
+    ret <- relocateHtmlDeps(ret, type = "tagList")
+    # Return the list of items
+    ret
   } else {
     # This will preserve attributes if x is a character with attribute,
     # like what HTML() produces
     list(x)
   }
 }
+
 
 
 combineKeys <- function(x) {
@@ -1444,22 +1482,41 @@ as.tags.html_dependency <- function(x, ...) {
 #'
 #' @export
 htmlPreserve <- function(x) {
-  raw = getOption("htmltools.preserve.raw", FALSE)
+  html_preserve(x, inline = "auto")
+}
+
+html_preserve <- function(x, inline = "auto") {
   x <- paste(x, collapse = "\n")
-  if (nzchar(x))
-    if (raw) {
-      # use fenced code block if there are embedded newlines
-      if (grepl("\n", x, fixed = TRUE))
-        sprintf("\n```{=html}\n%s\n```\n", x)
-      # otherwise use inline span
-      else
-        sprintf("`%s`{=html}", x)
-    }
-    else {
-      sprintf("<!--html_preserve-->%s<!--/html_preserve-->", x)
-    }
-  else
-    x
+
+  # Do nothing for empty string
+  if (!nzchar(x)) {
+    return(x)
+  }
+
+  # rmarkdown sets this option to TRUE to leverage various benefits
+  # that come with preserving HTML via pandoc 2.0's raw attribute feature
+  # https://github.com/rstudio/rmarkdown/pull/1965#issuecomment-734804176
+  if (!getOption("htmltools.preserve.raw", FALSE)) {
+    return(sprintf("<!--html_preserve-->%s<!--/html_preserve-->", x))
+  }
+
+  # With no other context, the presence of line break(s) determines whether a
+  # block or inline code chunk is used for pandoc's raw attributes (the inline
+  # version may add an additional <p> tag around the HTML (which can be
+  # problematic, for instance, when embedding shiny inside flexdashboard)
+  # Thankfully knitr::knit_print() can tell us whether we're inside a inline
+  # code which is why this is here essentially just for non-knit usage
+  # https://github.com/rstudio/flexdashboard/issues/379
+  # https://github.com/rstudio/rmarkdown/issues/2259#issuecomment-995996958
+  if (identical(inline, "auto")) {
+    inline <- grepl(x, "\n", fixed = TRUE)
+  }
+
+  if (inline) {
+    sprintf("`%s`{=html}", x)
+  } else {
+    sprintf("\n```{=html}\n%s\n```\n", x)
+  }
 }
 
 # Temporarily set x in env to value, evaluate expr, and
@@ -1626,11 +1683,12 @@ restorePreserveChunks <- function(strval, chunks) {
 #' @name knitr_methods
 #' @param x Object to knit_print
 #' @param ... Additional knit_print arguments
+#' @param inline Whether or not the code chunk is inline.
 NULL
 
 #' @rdname knitr_methods
 #' @export
-knit_print.shiny.tag <- function(x, ...) {
+knit_print.shiny.tag <- function(x, ..., inline = FALSE) {
   x <- tagify(x)
   output <- surroundSingletons(x)
   deps <- resolveDependencies(findDependencies(x, tagify = FALSE), resolvePackageDir = FALSE)
@@ -1643,15 +1701,15 @@ knit_print.shiny.tag <- function(x, ...) {
   meta <- c(meta, deps)
 
   knitr::asis_output(
-    htmlPreserve(format(content$ui, indent=FALSE)),
+    html_preserve(format(content$ui, indent=FALSE), inline),
     meta = meta)
 }
 
 #' @rdname knitr_methods
 #' @export
-knit_print.html <- function(x, ...) {
+knit_print.html <- function(x, ..., inline = FALSE) {
   deps <- resolveDependencies(findDependencies(x, tagify = FALSE))
-  knitr::asis_output(htmlPreserve(as.character(x)),
+  knitr::asis_output(html_preserve(as.character(x), inline),
     meta = if (length(deps)) list(deps))
 }
 
