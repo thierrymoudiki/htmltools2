@@ -51,7 +51,7 @@
 #'     allowing the use of SRI to ensure the integrity of packages downloaded from
 #'     remote servers.
 #'     Eg: `script = list(src = "min.js", integrity = "hash")`
-#'   \item An unamed list, containing a combination of named list with the fields
+#'   \item An unnamed list, containing a combination of named list with the fields
 #'     mentioned previously, and strings.
 #'     Eg:
 #'     \itemize{
@@ -336,7 +336,7 @@ copyDependencyToDir <- function(dependency, outputDir, mustWork = TRUE) {
     stop('outputDir must be of length 1 and cannot be "" or "/"')
 
   if (!dir_exists(outputDir))
-    dir.create(outputDir)
+    dir.create(outputDir, recursive = TRUE)
 
   target_dir <- if (getOption('htmltools.dir.version', TRUE)) {
     paste(dependency$name, dependency$version, sep = "-")
