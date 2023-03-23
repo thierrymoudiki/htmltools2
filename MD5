@@ -1,6 +1,6 @@
-5eb8ac7c4809c149e3349393cc3d6d40 *DESCRIPTION
+77d6592e4a031ab141224a69a643964e *DESCRIPTION
 73940913bf24110e97dd54f232437869 *NAMESPACE
-31bd8be100ea6067e128d92487964791 *NEWS.md
+35770bff9b5c98a752b329ce44a4b5a5 *NEWS.md
 5f044fb2e9680b6c1625d182bdeda8d1 *R/colors.R
 91f5148be49f226e0f94524641f55a7d *R/fill.R
 41d3d5c49e5ebc09d3696abdb53682ce *R/html_dependency.R
@@ -8,10 +8,10 @@
 78b5af20d00f46417d6109c0bfe4938d *R/html_print.R
 f21ae7b69cdd1eff6f1b67e84adc37fa *R/images.R
 0bddcd4bb9b19a209d1078b9ee7ef5b1 *R/known_tags.R
-e5be3139670557b1d6e5dd8278c41fff *R/selector.R
+f093a7c50e7ee932b50e9429549edf1e *R/selector.R
 cf1f9d24d986bbcaef54e76e0fa7d03c *R/staticimports.R
-22f59ef3bca6d9f91e7217da4c88084f *R/tag_query.R
-b5896b26b391c45e986583c74f58960f *R/tags.R
+dd67c919c682443a7927a74147b17938 *R/tag_query.R
+5ee2599fd31602887e53bc4a44dbd772 *R/tags.R
 8754e24109c264ad919c72f969223085 *R/template.R
 4d55ba4751614e631d3a0d5f54fb91e4 *R/utils.R
 86845ae12e5ad7e24895a6b507e6c030 *inst/fill/fill.css
@@ -65,7 +65,7 @@ ffda5c8f5a5c36c04d313bea6e6de0da *man/withTags.Rd
 91a1f1627fbd326845418e5e651055ea *src/template.c
 d5386f261693f9f4a5dda7b6fe0aa9f0 *tests/test-all.R
 81f65654f00a9808c699aa51b5c753d2 *tests/testthat/_snaps/tag-query.md
-e2a7ce510a1259b9eb16cef7178be94a *tests/testthat/_snaps/tags.md
+bc4287ae148918c070619d1a786f66af *tests/testthat/_snaps/tags.md
 037397d065ae81eade043f3da91b9abb *tests/testthat/colors-bad.txt
 8986597ca4b30709e3cc989c02439d95 *tests/testthat/colors-good-expected.txt
 7d0d443e1159f7efc66cadaf467f69e7 *tests/testthat/colors-good.txt
@@ -78,9 +78,9 @@ c6cc88d0969658803fe2b87090f46c9e *tests/testthat/test-colors.R
 b6c0aca161771fa91e08a400d46838e8 *tests/testthat/test-fill.R
 76e589e51de5fbb218c876eb67dcc6ef *tests/testthat/test-images.R
 5b520ad3f4dfd7204d90c182fc6a5942 *tests/testthat/test-print.R
-c03b034a955727c055549b6afd440d41 *tests/testthat/test-selector.R
+00e215b63d00f05bc12717510fd3cfc2 *tests/testthat/test-selector.R
 696624f78850bda74e1a9d6f8bfb4c95 *tests/testthat/test-tag-query.R
-7b2ff032981593ea951e4873ec1900b2 *tests/testthat/test-tags.r
+f68f8b9425a884662bbf7b6f9642c04a *tests/testthat/test-tags.r
 236dc86c477edb3a95f882ced8d34447 *tests/testthat/test-template.R
 e60a118b02ff97b60c7f250b325052dc *tests/testthat/test-textwriter.r
 1d7b7c72f3937e644bca05b5272f1b39 *tests/testthat/test-whitespace.r
