@@ -1,6 +1,6 @@
-d49b7e544ecde622dc0ce8e900492931 *DESCRIPTION
+2d0c2524635795d92b51346bbfc866ec *DESCRIPTION
 7d7f19ef16b012acaf655611650ac937 *NAMESPACE
-bc0ba37eed365b77320efbce79fbfe12 *NEWS.md
+b77508d03acc8b80bc87ce17f7979d05 *NEWS.md
 5f044fb2e9680b6c1625d182bdeda8d1 *R/colors.R
 4a39ff98c97207907fe80971470c2e31 *R/fill.R
 41d3d5c49e5ebc09d3696abdb53682ce *R/html_dependency.R
@@ -11,7 +11,7 @@ f21ae7b69cdd1eff6f1b67e84adc37fa *R/images.R
 0bddcd4bb9b19a209d1078b9ee7ef5b1 *R/known_tags.R
 f093a7c50e7ee932b50e9429549edf1e *R/selector.R
 cf1f9d24d986bbcaef54e76e0fa7d03c *R/staticimports.R
-e6a9bd7ca17d37542ece9fc564b0e4e4 *R/tag_query.R
+f313557f25e51070e8e1e2a7ca02637c *R/tag_query.R
 7ab22c6369557442c25767886732d2ab *R/tags.R
 8754e24109c264ad919c72f969223085 *R/template.R
 4d55ba4751614e631d3a0d5f54fb91e4 *R/utils.R
