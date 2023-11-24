@@ -824,7 +824,13 @@ tagWrite <- function(tag, textWriter, indent=0, eol = "\n") {
   # optionally process a list of tags
   if (!isTag(tag) && isTagList(tag)) {
     tag <- dropNullsOrEmpty(flattenTags(tag))
-    parallel::parLapply(cl = parallel::detectCores(), X = tag, fun = tagWrite, textWriter, indent) # parLapply(cl = NULL, X, fun, ..., chunk.size = NULL)
+    n_tags <- length(tag)
+    pb <- utils::txtProgressBar(min = 0, max = n_tags, style = 3)
+    for (i in 1:n_tags)
+    {
+      tagWrite(tag[[i]], textWriter, indent)
+      setTxtProgressBar(pb, i)
+    }
     return (NULL)
   }
 
