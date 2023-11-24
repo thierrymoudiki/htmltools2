@@ -824,7 +824,7 @@ tagWrite <- function(tag, textWriter, indent=0, eol = "\n") {
   # optionally process a list of tags
   if (!isTag(tag) && isTagList(tag)) {
     tag <- dropNullsOrEmpty(flattenTags(tag))
-    pbapply::pblapply(tag, tagWrite, textWriter, indent)
+    parallel::parLapply(cl = parallel::detectCores(), X = tag, fun = tagWrite, textWriter, indent) # parLapply(cl = NULL, X, fun, ..., chunk.size = NULL)
     return (NULL)
   }
 
