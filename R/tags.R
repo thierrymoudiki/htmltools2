@@ -824,7 +824,7 @@ tagWrite <- function(tag, textWriter, indent=0, eol = "\n") {
   # optionally process a list of tags
   if (!isTag(tag) && isTagList(tag)) {
     tag <- dropNullsOrEmpty(flattenTags(tag))
-    lapply(tag, tagWrite, textWriter, indent)
+    pbapply::pblapply(tag, tagWrite, textWriter, indent)
     return (NULL)
   }
 
