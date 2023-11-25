@@ -825,12 +825,14 @@ tagWrite <- function(tag, textWriter, indent=0, eol = "\n") {
   if (!isTag(tag) && isTagList(tag)) {
     tag <- dropNullsOrEmpty(flattenTags(tag))
     n_tags <- length(tag)
+    print("\n in tags.R/tagWrite \n")
     pb <- utils::txtProgressBar(min = 0, max = n_tags, style = 3)
     for (i in 1:n_tags)
     {
       tagWrite(tag[[i]], textWriter, indent)
       setTxtProgressBar(pb, i)
     }
+    close(pb)
     return (NULL)
   }
 

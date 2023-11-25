@@ -17,17 +17,17 @@ capturePlot(
 \arguments{
 \item{expr}{A plotting expression that generates a plot (or yields an object
 that generates a plot when printed, like a ggplot2). We evaluate this
-expression after activating the graphics device (\code{device}).}
+expression after activating the graphics device (`device`).}
 
-\item{filename}{The output filename. By default, a temp file with \code{.png}
+\item{filename}{The output filename. By default, a temp file with `.png`
 extension will be used; you should provide a filename with a different
 extension if you provide a non-PNG graphics device function.}
 
 \item{device}{A graphics device function; by default, this will be either
-\code{\link[grDevices:png]{grDevices::png()}}, \code{\link[ragg:agg_png]{ragg::agg_png()}}, or \code{\link[Cairo:Cairo]{Cairo::CairoPNG()}}, depending on
-your system and configuration. See \code{\link[=defaultPngDevice]{defaultPngDevice()}}.}
+[grDevices::png()], [ragg::agg_png()], or [Cairo::CairoPNG()], depending on
+your system and configuration. See [defaultPngDevice()].}
 
-\item{width, height, res, ...}{Additional arguments to the \code{device} function.}
+\item{width, height, res, ...}{Additional arguments to the `device` function.}
 }
 \description{
 Easily generates a .png file (or other graphics file) from a plotting
@@ -63,6 +63,6 @@ if (capabilities("cairo")) {
 
 }
 \seealso{
-\code{\link[=plotTag]{plotTag()}} saves plots as a self-contained \verb{<img>}
-tag.
+[plotTag()] saves plots as a self-contained `<img>`
+  tag.
 }

@@ -11,10 +11,10 @@ tagFunction(func)
 dependencies.}
 }
 \description{
-Create 'lazily' rendered HTML \link{tags} (and/or \code{\link[=htmlDependencies]{htmlDependencies()}}).
+Create 'lazily' rendered HTML [tags] (and/or [htmlDependencies()]).
 }
 \details{
-When possible, use \code{\link[=tagAddRenderHook]{tagAddRenderHook()}} to provide both a tag
+When possible, use [`tagAddRenderHook()`] to provide both a tag
 structure and utilize a render function.
 }
 \examples{
@@ -32,5 +32,5 @@ withr::with_options(list(useDep = FALSE), renderTags(myDiv))
 
 }
 \seealso{
-\code{\link[=tagAddRenderHook]{tagAddRenderHook()}}
+[`tagAddRenderHook()`]
 }

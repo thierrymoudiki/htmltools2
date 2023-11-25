@@ -11,10 +11,10 @@ A graphics device function.
 }
 \description{
 Returns the best PNG-based graphics device for your system, in the opinion of
-the \code{htmltools} maintainers. On Mac,
-\code{\link[grDevices:png]{grDevices::png()}} is used; on all other
-platforms, either \code{\link[ragg:agg_png]{ragg::agg_png()}} or
-\code{\link[Cairo:Cairo]{Cairo::CairoPNG()}} are used if their packages
-are installed. Otherwise, \code{\link[grDevices:png]{grDevices::png()}} is
+the `htmltools` maintainers. On Mac,
+[grDevices::png()] is used; on all other
+platforms, either [ragg::agg_png()] or
+[Cairo::CairoPNG()] are used if their packages
+are installed. Otherwise, [grDevices::png()] is
 used.
 }

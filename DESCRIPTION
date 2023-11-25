@@ -22,7 +22,7 @@ BugReports: https://github.com/rstudio/htmltools/issues
 Depends: R (>= 2.14.1)
 Imports: base64enc, digest, ellipsis, fastmap (>= 1.1.0), grDevices,
         rlang (>= 1.0.0), utils
-Suggests: Cairo, markdown, ragg, shiny, testthat, withr, pbapply
+Suggests: Cairo, markdown, ragg, shiny, testthat, withr
 Enhances: knitr
 Config/Needs/check: knitr
 Config/Needs/website: rstudio/quillt, bench

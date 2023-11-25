@@ -13,7 +13,10 @@
 #'   that the value is browsable.
 #' @export
 browsable <- function(x, value = TRUE) {
-  attr(x, "browsable_html") <- if (isTRUE(value)) TRUE else NULL
+  attr(x, "browsable_html") <- if (isTRUE(value))
+    TRUE
+  else
+    NULL
   return(x)
 }
 
@@ -22,7 +25,7 @@ browsable <- function(x, value = TRUE) {
 #' @rdname browsable
 #' @export
 is.browsable <- function(x) {
-  return(isTRUE(attr(x, "browsable_html", exact=TRUE)))
+  return(isTRUE(attr(x, "browsable_html", exact = TRUE)))
 }
 
 #' Implementation of the print method for HTML
@@ -38,24 +41,29 @@ is.browsable <- function(x) {
 #' @return Invisibly returns the URL or path of the generated HTML page.
 #'
 #' @export
-html_print <- function(html, background = "white", viewer = getOption("viewer", utils::browseURL)) {
+html_print <-
+  function(html,
+           background = "white",
+           viewer = getOption("viewer", utils::browseURL)) {
+    # define temporary directory for output
+    www_dir <- tempfile("viewhtml")
+    dir.create(www_dir)
 
-  # define temporary directory for output
-  www_dir <- tempfile("viewhtml")
-  dir.create(www_dir)
+    # define output file
+    index_html <- file.path(www_dir, "index.html")
 
-  # define output file
-  index_html <- file.path(www_dir, "index.html")
+    # save file
+    save_html(html,
+              file = index_html,
+              background = background,
+              libdir = "lib")
 
-  # save file
-  save_html(html, file = index_html, background = background, libdir = "lib")
+    # show it
+    if (!is.null(viewer))
+      viewer(index_html)
 
-  # show it
-  if (!is.null(viewer))
-    viewer(index_html)
-
-  invisible(index_html)
-}
+    invisible(index_html)
+  }
 
 #' Save an HTML object to a file
 #'
@@ -77,61 +85,71 @@ save_html <- function(html, file, ...) {
 #' @param libdir Directory to copy dependencies to.
 #' @param lang Value of the `<html>` `lang` attribute.
 #' @export
-save_html.default <- function(html, file, background = "white", libdir = "lib", lang = "en", ...) {
-  rlang::check_dots_empty()
+save_html.default <-
+  function(html,
+           file,
+           background = "white",
+           libdir = "lib",
+           lang = "en",
+           ...) {
+    rlang::check_dots_empty()
 
-  force(html)
-  force(background)
-  force(libdir)
+    force(html)
+    force(background)
+    force(libdir)
 
-  # ensure that the paths to dependencies are relative to the base
-  # directory where the webpage is being built.
-  if (is.character(file)) {
-    dir <- normalizePath(dirname(file), mustWork = TRUE)
-    file <- file.path(dir, basename(file))
-    owd <- setwd(dir)
-    on.exit(setwd(owd), add = TRUE)
+    # ensure that the paths to dependencies are relative to the base
+    # directory where the webpage is being built.
+    if (is.character(file)) {
+      dir <- normalizePath(dirname(file), mustWork = TRUE)
+      file <- file.path(dir, basename(file))
+      owd <- setwd(dir)
+      on.exit(setwd(owd), add = TRUE)
+    }
+
+    rendered <- renderTags(html)
+    print("\n in html_print.R/save_html.default \n")
+    deps <- lapply(rendered$dependencies, function(dep) {
+      dep <- copyDependencyToDir(dep, libdir, FALSE)
+      dep <- makeDependencyRelative(dep, dir, FALSE)
+      dep
+    })
+
+    bodyBegin <-
+      if (!isTRUE(grepl("<body\\b", rendered$html[1], ignore.case = TRUE))) {
+        "<body>"
+      }
+    bodyEnd <- if (!is.null(bodyBegin)) {
+      "</body>"
+    }
+
+    # build the web-page
+    html <- c(
+      "<!DOCTYPE html>",
+      sprintf('<html lang="%s">', lang),
+      "<head>",
+      "<meta charset=\"utf-8\"/>",
+      sprintf(
+        "<style>body{background-color:%s;}</style>",
+        htmlEscape(background)
+      ),
+      renderDependencies(deps, c("href", "file")),
+      rendered$head,
+      "</head>",
+      bodyBegin,
+      rendered$html,
+      bodyEnd,
+      "</html>"
+    )
+
+    if (is.character(file)) {
+      # Write to file in binary mode, so \r\n in input doesn't become \r\r\n
+      con <- base::file(file, open = "w+b")
+      on.exit(close(con), add = TRUE)
+    } else {
+      con <- file
+    }
+
+    # write it
+    writeLines(html, con, useBytes = TRUE)
   }
-
-  rendered <- renderTags(html)
-
-  deps <- lapply(rendered$dependencies, function(dep) {
-    dep <- copyDependencyToDir(dep, libdir, FALSE)
-    dep <- makeDependencyRelative(dep, dir, FALSE)
-    dep
-  })
-
-  bodyBegin <- if (!isTRUE(grepl("<body\\b", rendered$html[1], ignore.case = TRUE))) {
-    "<body>"
-  }
-  bodyEnd <- if (!is.null(bodyBegin)) {
-    "</body>"
-  }
-
-  # build the web-page
-  html <- c("<!DOCTYPE html>",
-            sprintf('<html lang="%s">', lang),
-            "<head>",
-            "<meta charset=\"utf-8\"/>",
-            sprintf("<style>body{background-color:%s;}</style>", htmlEscape(background)),
-            renderDependencies(deps, c("href", "file")),
-            rendered$head,
-            "</head>",
-            bodyBegin,
-            rendered$html,
-            bodyEnd,
-            "</html>")
-
-  if (is.character(file)) {
-    # Write to file in binary mode, so \r\n in input doesn't become \r\r\n
-    con <- base::file(file, open = "w+b")
-    on.exit(close(con), add = TRUE)
-  } else {
-    con <- file
-  }
-
-  # write it
-  writeLines(html, con, useBytes = TRUE)
-}
-
-

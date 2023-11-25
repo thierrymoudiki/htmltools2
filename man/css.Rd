@@ -12,8 +12,8 @@ the argument is the property value. See Details for conversion rules.}
 
 \item{collapse_}{(Note that the parameter name has a trailing underscore
 character.) Character to use to collapse properties into a single string;
-likely \code{""} (the default) for style attributes, and either \code{"\\n"}
-or \code{NULL} for style blocks.}
+likely `""` (the default) for style attributes, and either `"\n"`
+or `NULL` for style blocks.}
 }
 \description{
 Convenience function for building CSS style declarations (i.e. the string
@@ -21,20 +21,20 @@ that goes into a style attribute, or the parts that go inside curly braces in
 a full stylesheet).
 }
 \details{
-CSS uses \code{'-'} (minus) as a separator character in property names, but
+CSS uses `'-'` (minus) as a separator character in property names, but
 this is an inconvenient character to use in an R function argument name.
-Instead, you can use \code{'.'} (period) and/or \code{'_'} (underscore) as
-separator characters. For example, \code{css(font.size = "12px")} yields
-\code{"font-size:12px;"}.
+Instead, you can use `'.'` (period) and/or `'_'` (underscore) as
+separator characters. For example, `css(font.size = "12px")` yields
+`"font-size:12px;"`.
 
-To mark a property as \code{!important}, add a \code{'!'} character to the end
-of the property name. (Since \code{'!'} is not normally a character that can be
+To mark a property as `!important`, add a `'!'` character to the end
+of the property name. (Since `'!'` is not normally a character that can be
 used in an identifier in R, you'll need to put the name in double quotes or
 backticks.)
 
 Argument values will be converted to strings using
-\code{paste(collapse = " ")}. Any property with a value of \code{NULL} or
-\code{""} (after paste) will be dropped.
+`paste(collapse = " ")`. Any property with a value of `NULL` or
+`""` (after paste) will be dropped.
 }
 \examples{
 padding <- 6

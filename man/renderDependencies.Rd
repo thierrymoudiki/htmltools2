@@ -12,10 +12,10 @@ renderDependencies(
 )
 }
 \arguments{
-\item{dependencies}{A list of \code{htmlDependency} objects.}
+\item{dependencies}{A list of `htmlDependency` objects.}
 
-\item{srcType}{The type of src paths to use; valid values are \code{file} or
-\code{href}.}
+\item{srcType}{The type of src paths to use; valid values are `file` or
+`href`.}
 
 \item{encodeFunc}{The function to use to encode the path part of a URL. The
 default should generally be used.}
@@ -24,8 +24,8 @@ default should generally be used.}
 script and stylesheet files. The default should generally be used.}
 }
 \value{
-An \code{\link[=HTML]{HTML()}} object suitable for inclusion in the head of an
-HTML document.
+An [HTML()] object suitable for inclusion in the head of an
+  HTML document.
 }
 \description{
 Create the appropriate HTML markup for including dependencies in an HTML

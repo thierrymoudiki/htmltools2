@@ -21,9 +21,9 @@ sub-directory, the sub-directory must already exist.}
 
 \item{libdir}{Directory to copy dependencies to.}
 
-\item{lang}{Value of the \verb{<html>} \code{lang} attribute.}
+\item{lang}{Value of the `<html>` `lang` attribute.}
 }
 \description{
 An S3 generic method for saving an HTML-like object to a file. The default
-method copies dependency files to the directory specified via \code{libdir}.
+method copies dependency files to the directory specified via `libdir`.
 }

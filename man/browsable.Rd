@@ -15,18 +15,18 @@ is.browsable(x)
 \item{value}{Whether the object should be considered browsable.}
 }
 \value{
-\code{browsable} returns \code{x} with an extra attribute to indicate
-that the value is browsable.
+`browsable` returns `x` with an extra attribute to indicate
+  that the value is browsable.
 
-\code{is.browsable} returns \code{TRUE} if the value is browsable, or
-\code{FALSE} if not.
+`is.browsable` returns `TRUE` if the value is browsable, or
+  `FALSE` if not.
 }
 \description{
 By default, HTML objects display their HTML markup at the console when
-printed. \code{browsable} can be used to make specific objects render as HTML
+printed. `browsable` can be used to make specific objects render as HTML
 by default when printed at the console.
 }
 \details{
 You can override the default browsability of an HTML object by explicitly
-passing \code{browse = TRUE} (or \code{FALSE}) to the \code{print} function.
+passing `browse = TRUE` (or `FALSE`) to the `print` function.
 }

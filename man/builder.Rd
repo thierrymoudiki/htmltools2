@@ -63,40 +63,38 @@ tag(`_tag_name`, varArgs, .noWS = NULL, .renderHook = NULL)
 }
 \arguments{
 \item{...}{Tag attributes (named arguments) and children (unnamed arguments).
-A named argument with an \code{NA} value is rendered as a boolean attributes
+A named argument with an `NA` value is rendered as a boolean attributes
 (see example). Children may include any combination of:
-\itemize{
-\item Other tags objects
-\item \code{\link[=HTML]{HTML()}} strings
-\item \code{\link[=htmlDependency]{htmlDependency()}}s
-\item Single-element atomic vectors
-\item \code{list()}s containing any combination of the above
-}}
+* Other tags objects
+* [HTML()] strings
+* [htmlDependency()]s
+* Single-element atomic vectors
+* `list()`s containing any combination of the above}
 
 \item{.noWS}{Character vector used to omit some of the whitespace that would
-normally be written around this tag. Valid options include \code{before},
-\code{after}, \code{outside}, \code{after-begin}, and \code{before-end}.
+normally be written around this tag. Valid options include `before`,
+`after`, `outside`, `after-begin`, and `before-end`.
 Any number of these options can be specified.}
 
-\item{.renderHook}{A function (or list of functions) to call when the \code{tag} is rendered. This
-function should have at least one argument (the \code{tag}) and return anything
-that can be converted into tags via \code{\link[=as.tags]{as.tags()}}. Additional hooks may also be
-added to a particular \code{tag} via \code{\link[=tagAddRenderHook]{tagAddRenderHook()}}.}
+\item{.renderHook}{A function (or list of functions) to call when the `tag` is rendered. This
+function should have at least one argument (the `tag`) and return anything
+that can be converted into tags via [as.tags()]. Additional hooks may also be
+added to a particular `tag` via [tagAddRenderHook()].}
 
 \item{_tag_name}{A character string to use for the tag name.}
 
 \item{varArgs}{List of tag attributes and children.}
 }
 \value{
-A \code{list()} with a \code{shiny.tag} class that can be converted into an
-HTML string via \code{as.character()} and saved to a file with \code{save_html()}.
+A `list()` with a `shiny.tag` class that can be converted into an
+  HTML string via `as.character()` and saved to a file with `save_html()`.
 }
 \description{
 Create an R object that represents an HTML tag. For convenience, common HTML
-tags (e.g., \verb{<div>}) can be created by calling for their tag name directly
-(e.g., \code{div()}). To create less common HTML5 (or SVG) tags (e.g.,
-\verb{<article>}), use the \code{tags} list collection (e.g., \code{tags$article()}). To
-create other non HTML/SVG tags, use the lower-level \code{tag()} constructor.
+tags (e.g., `<div>`) can be created by calling for their tag name directly
+(e.g., `div()`). To create less common HTML5 (or SVG) tags (e.g.,
+`<article>`), use the `tags` list collection (e.g., `tags$article()`). To
+create other non HTML/SVG tags, use the lower-level `tag()` constructor.
 }
 \examples{
 tags$html(
@@ -130,5 +128,5 @@ tags$span(
 
 }
 \seealso{
-\code{\link[=tagList]{tagList()}}, \code{\link[=withTags]{withTags()}}, \code{\link[=tagAppendAttributes]{tagAppendAttributes()}}, \code{\link[=tagQuery]{tagQuery()}}
+[tagList()], [withTags()], [tagAppendAttributes()], [tagQuery()]
 }

@@ -24,14 +24,14 @@ TRUE, add the new dependencies to the existing ones.}
 Gets or sets the HTML dependencies associated with an object (such as a tag).
 }
 \details{
-\code{attachDependencies} provides an alternate syntax for setting
+`attachDependencies` provides an alternate syntax for setting
 dependencies. It is similar to \code{local(\{htmlDependencies(x) <- value;
 x\})}, except that if there are any existing dependencies,
-\code{attachDependencies} will add to them, instead of replacing them.
+`attachDependencies` will add to them, instead of replacing them.
 
 As of htmltools 0.3.4, HTML dependencies can be attached without using
-\code{attachDependencies}. Instead, they can be added inline, like a child
-object of a tag or \code{\link[=tagList]{tagList()}}.
+`attachDependencies`. Instead, they can be added inline, like a child
+object of a tag or [tagList()].
 }
 \examples{
 # Create a JavaScript dependency

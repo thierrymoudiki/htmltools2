@@ -12,34 +12,32 @@ doRenderTags(x, indent = 0)
 \arguments{
 \item{x}{Tag object(s) to render}
 
-\item{singletons}{A list of \link{singleton} signatures to consider already
+\item{singletons}{A list of [singleton] signatures to consider already
 rendered; any matching singletons will be dropped instead of rendered.
 (This is useful (only?) for incremental rendering.)}
 
-\item{indent}{Initial indent level, or \code{FALSE} if no indentation should
+\item{indent}{Initial indent level, or `FALSE` if no indentation should
 be used.}
 }
 \value{
-\code{renderTags} returns a list with the following variables:
-\itemize{
-\item \code{head}: An \code{\link[=HTML]{HTML()}} string that should be included in \verb{<head>}.
-\item \code{singletons}: Character vector of singleton signatures that are
-known after rendering.
-\item \code{dependencies}: A list of \link[=resolveDependencies]{resolved} \code{\link[=htmlDependency]{htmlDependency()}} objects.
-\item \code{html}: An \code{\link[=HTML]{HTML()}} string that represents the main HTML that was rendered.
-}
+`renderTags` returns a list with the following variables:
+  * `head`: An [HTML()] string that should be included in `<head>`.
+  * `singletons`: Character vector of singleton signatures that are
+  known after rendering.
+  * `dependencies`: A list of [resolved][resolveDependencies] [htmlDependency()] objects.
+  * `html`: An [HTML()] string that represents the main HTML that was rendered.
 
-\code{doRenderTags} returns a simple \code{\link[=HTML]{HTML()}} string.
+`doRenderTags` returns a simple [HTML()] string.
 }
 \description{
 Renders tags (and objects that can be converted into tags using
-\code{\link[=as.tags]{as.tags()}}) into HTML. (Generally intended to be called from web
+[as.tags()]) into HTML. (Generally intended to be called from web
 framework libraries, not directly by most users--see
-\code{\link[=print.html]{print.html()}} for higher level rendering.)
+[print.html()] for higher level rendering.)
 }
 \details{
-\code{doRenderTags} is intended for very low-level use; it ignores
-render hooks, singletons, head, and dependency handling, and simply renders the given tag
-objects as HTML. Please use \code{renderTags()} if \code{x} has not already handled its dependencies
-and render hooks.
+`doRenderTags` is intended for very low-level use; it ignores
+  render hooks, singletons, head, and dependency handling, and simply renders the given tag
+  objects as HTML. Please use `renderTags()` if `x` has not already handled its dependencies
+  and render hooks.
 }

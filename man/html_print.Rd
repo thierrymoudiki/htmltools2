@@ -16,12 +16,12 @@ html_print(
 \item{background}{Background color for web page}
 
 \item{viewer}{A function to be called with the URL or path to the generated
-HTML page. Can be \code{NULL}, in which case no viewer will be invoked.}
+HTML page. Can be `NULL`, in which case no viewer will be invoked.}
 }
 \value{
 Invisibly returns the URL or path of the generated HTML page.
 }
 \description{
 Convenience method that provides an implementation of the
-\code{\link[base:print]{base::print()}} method for HTML content.
+[base::print()] method for HTML content.
 }

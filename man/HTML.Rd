@@ -13,15 +13,15 @@ HTML(text, ..., .noWS = NULL)
 concatenated together}
 
 \item{.noWS}{Character vector used to omit some of the whitespace that would
-normally be written around this HTML. Valid options include \code{before},
-\code{after}, and \code{outside} (equivalent to \code{before} and
-\code{end}).}
+normally be written around this HTML. Valid options include `before`,
+`after`, and `outside` (equivalent to `before` and
+`end`).}
 }
 \value{
-The input \code{text}, but marked as HTML.
+The input `text`, but marked as HTML.
 }
 \description{
-Marks the given text as HTML, which means the \link{tag} functions will know
+Marks the given text as HTML, which means the [tag] functions will know
 not to perform HTML escaping on it.
 }
 \examples{

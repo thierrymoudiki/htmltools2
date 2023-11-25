@@ -7,30 +7,30 @@
 tagAddRenderHook(tag, func, replace = FALSE)
 }
 \arguments{
-\item{tag}{A \code{\link[=tag]{tag()}} object.}
+\item{tag}{A [`tag()`] object.}
 
-\item{func}{A function (\emph{hook}) to call when the \code{tag} is rendered. This function
-should have at least one argument (the \code{tag}) and return anything that can
-be converted into tags via \code{\link[=as.tags]{as.tags()}}.}
+\item{func}{A function (_hook_) to call when the `tag` is rendered. This function
+should have at least one argument (the `tag`) and return anything that can
+be converted into tags via [as.tags()].}
 
-\item{replace}{If \code{TRUE}, the previous hooks will be removed. If \code{FALSE},
-\code{func} is appended to the previous hooks.}
+\item{replace}{If `TRUE`, the previous hooks will be removed. If `FALSE`,
+`func` is appended to the previous hooks.}
 }
 \value{
-A \code{\link[=tag]{tag()}} object with a \code{.renderHooks} field containing a list of functions
-(e.g. \code{func}). When the return value is \emph{rendered} (such as with \code{\link[=as.tags]{as.tags()}}),
-these functions will be called just prior to writing the HTML.
+A [tag()] object with a `.renderHooks` field containing a list of functions
+  (e.g. `func`). When the return value is _rendered_ (such as with [`as.tags()`]),
+  these functions will be called just prior to writing the HTML.
 }
 \description{
-Adds a hook to call on a \code{\link[=tag]{tag()}} object when it is is rendered as HTML (with,
-for example, \code{\link[=print]{print()}}, \code{\link[=renderTags]{renderTags()}}, \code{\link[=as.tags]{as.tags()}}, etc).
+Adds a hook to call on a [tag()] object when it is is rendered as HTML (with,
+for example, [print()], [renderTags()], [as.tags()], etc).
 }
 \details{
-The primary motivation for \code{\link[=tagAddRenderHook]{tagAddRenderHook()}} is to create tags that can
+The primary motivation for [tagAddRenderHook()] is to create tags that can
 change their attributes (e.g., change CSS classes) depending upon the context
 in which they're rendered (e.g., use one set of CSS classes in one a page
 layout, but a different set in another page layout). In this situation,
-\code{\link[=tagAddRenderHook]{tagAddRenderHook()}} is preferable to \code{\link[=tagFunction]{tagFunction()}} since the latter is more a
+[tagAddRenderHook()] is preferable to [tagFunction()] since the latter is more a
 "black box" in the sense that you don't know anything about the tag structure
 until it's rendered.
 }
@@ -84,5 +84,5 @@ newObj <- tagAddRenderHook(obj, function(x) {
 newObj
 }
 \seealso{
-\code{\link[=tagFunction]{tagFunction()}}
+[tagFunction()]
 }

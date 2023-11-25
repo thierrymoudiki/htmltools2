@@ -12,24 +12,25 @@ unit is not specified.}
 }
 \value{
 A properly formatted CSS unit of length, if possible. Otherwise, will
-throw an error.
+  throw an error.
 }
 \description{
 Checks that the argument is valid for use as a CSS unit of length.
 }
 \details{
-\code{NULL} and \code{NA} are returned unchanged.
+`NULL` and `NA` are returned unchanged.
 
 Single element numeric vectors are returned as a character vector with the
-number plus a suffix of \code{"px"}.
+number plus a suffix of `"px"`.
 
-Single element character vectors must be \code{"auto"}, \code{"fit-content"}
-or \code{"inherit"}, a number, or a length calculated by the \code{"calc"}
-CSS function. If the number has a suffix, it must be valid: \code{px},
-\verb{\\\%}, \code{ch}, \code{em}, \code{rem}, \code{pt}, \verb{in}, \code{cm},
-\code{mm}, \code{ex}, \code{pc}, \code{vh}, \code{vw}, \code{vmin}, or
-\code{vmax}.
-If the number has no suffix, the suffix \code{"px"} is appended.
+Single element character vectors must be `"auto"`, `"fit-content"`
+or `"inherit"`, a number, or a length calculated by the `"calc"`
+CSS function. If the number has a suffix, it must be valid: `px`,
+`\%`, `ch`, `em`, `rem`, `pt`, `in`, `cm`,
+`mm`, `ex`, `pc`, `vh`, `vw`, `vmin`, or
+`vmax`.
+If the number has no suffix, the suffix `"px"` is appended.
+
 
 Any other value will cause an error to be thrown.
 }

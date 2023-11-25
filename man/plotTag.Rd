@@ -2,7 +2,7 @@
 % Please edit documentation in R/images.R
 \name{plotTag}
 \alias{plotTag}
-\title{Capture a plot as a self-contained \verb{<img>} tag}
+\title{Capture a plot as a self-contained `<img>` tag}
 \usage{
 plotTag(
   expr,
@@ -26,39 +26,39 @@ of the image. This is used by accessibility tools, such as screen readers
 for vision impaired users.}
 
 \item{device}{A graphics device function; by default, this will be either
-\code{\link[grDevices:png]{grDevices::png()}}, \code{\link[ragg:agg_png]{ragg::agg_png()}}, or \code{\link[Cairo:Cairo]{Cairo::CairoPNG()}}, depending on
-your system and configuration. See \code{\link[=defaultPngDevice]{defaultPngDevice()}}.}
+[grDevices::png()], [ragg::agg_png()], or [Cairo::CairoPNG()], depending on
+your system and configuration. See [defaultPngDevice()].}
 
 \item{width, height}{The width/height that the generated tag should be
 displayed at, in logical (browser) pixels.}
 
 \item{pixelratio}{Indicates the ratio between physical and logical units of
-length. For PNGs that may be displayed on high-DPI screens, use \code{2};
+length. For PNGs that may be displayed on high-DPI screens, use `2`;
 for graphics devices that express width/height in inches (like
-\code{\link[grDevices:cairo]{grDevices::svg()}}, try \code{1/72} or \code{1/96}.}
+[grDevices::svg()], try `1/72` or `1/96`.}
 
-\item{mimeType}{The MIME type associated with the \code{device}. Examples are
-\code{image/png}, \code{image/tiff}, \code{image/svg+xml}.}
+\item{mimeType}{The MIME type associated with the `device`. Examples are
+`image/png`, `image/tiff`, `image/svg+xml`.}
 
 \item{deviceArgs}{A list of additional arguments that should be included when
-the \code{device} function is invoked.}
+the `device` function is invoked.}
 
 \item{attribs}{A list of additional attributes that should be included on the
-generated \verb{<img>} (e.g. \code{id}, \code{class}).}
+generated `<img>` (e.g. `id`, `class`).}
 
-\item{suppressSize}{By default, \code{plotTag} will include a \code{style}
-attribute with \code{width} and \code{height} properties specified in
+\item{suppressSize}{By default, `plotTag` will include a `style`
+attribute with `width` and `height` properties specified in
 pixels. If you'd rather specify the image size using other methods (like
 responsive CSS rules) you can use this argument to suppress width
-(\code{"x"}), height (\code{"y"}), or both (\code{"xy"}) properties.}
+(`"x"`), height (`"y"`), or both (`"xy"`) properties.}
 }
 \value{
-A \code{\link[=browsable]{browsable()}} HTML \verb{<img>} tag object. Print it at
-the console to preview, or call \code{\link[=as.character]{as.character()}} on it to view the HTML
-source.
+A [browsable()] HTML `<img>` tag object. Print it at
+  the console to preview, or call [as.character()] on it to view the HTML
+  source.
 }
 \description{
-Capture a plot as a self-contained \verb{<img>} tag
+Capture a plot as a self-contained `<img>` tag
 }
 \examples{
 img <- plotTag({
@@ -77,5 +77,5 @@ if (interactive() && capabilities("cairo")) {
 
 }
 \seealso{
-\code{\link[=capturePlot]{capturePlot()}} saves plots as an image file.
+[capturePlot()] saves plots as an image file.
 }

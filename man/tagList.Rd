@@ -7,10 +7,10 @@
 tagList(...)
 }
 \arguments{
-\item{...}{A collection of \link{tag}s.}
+\item{...}{A collection of [tag]s.}
 }
 \description{
-Create a \code{list()} of \link{tag}s with methods for \code{\link[=print]{print()}}, \code{\link[=as.character]{as.character()}},
+Create a `list()` of [tag]s with methods for [print()], [as.character()],
 etc.
 }
 \examples{

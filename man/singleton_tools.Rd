@@ -11,25 +11,25 @@ surroundSingletons(ui)
 takeSingletons(ui, singletons = character(0), desingleton = TRUE)
 }
 \arguments{
-\item{ui}{Tag object or lists of tag objects. See \link{builder} topic.}
+\item{ui}{Tag object or lists of tag objects. See [builder] topic.}
 
 \item{singletons}{Character vector of singleton signatures that have already
 been encountered (i.e. returned from previous calls to
-\code{takeSingletons}).}
+`takeSingletons`).}
 
 \item{desingleton}{Logical value indicating whether singletons that are
 encountered should have the singleton attribute removed.}
 }
 \value{
-\code{surroundSingletons} preprocesses a tag object by changing any
-singleton X into \verb{<!--SHINY.SINGLETON[sig]-->X'<!--/SHINY.SINGLETON[sig]-->}
-where sig is the sha1 of X, and X' is X minus the singleton attribute.
+`surroundSingletons` preprocesses a tag object by changing any
+  singleton X into `<!--SHINY.SINGLETON[sig]-->X'<!--/SHINY.SINGLETON[sig]-->`
+  where sig is the sha1 of X, and X' is X minus the singleton attribute.
 
-\code{takeSingletons} returns a list with the elements \code{ui} (the
-processed tag objects with any duplicate singleton objects removed) and
-\code{singletons} (the list of known singleton signatures).
+`takeSingletons` returns a list with the elements `ui` (the
+  processed tag objects with any duplicate singleton objects removed) and
+  `singletons` (the list of known singleton signatures).
 }
 \description{
-Functions for manipulating \code{\link[=singleton]{singleton()}} objects in tag
+Functions for manipulating [singleton()] objects in tag
 hierarchies. Intended for framework authors.
 }

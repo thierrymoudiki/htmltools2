@@ -14,29 +14,29 @@ bindFillRole(
 )
 }
 \arguments{
-\item{x}{a \code{\link[=tag]{tag()}} object. Can also be a valid \code{\link[=tagQuery]{tagQuery()}} input if
-\code{.cssSelector} is specified.}
+\item{x}{a [tag()] object. Can also be a valid [tagQuery()] input if
+`.cssSelector` is specified.}
 
 \item{...}{currently unused.}
 
-\item{item}{whether or not to treat \code{x} as a fill item.}
+\item{item}{whether or not to treat `x` as a fill item.}
 
-\item{container}{whether or not to treat \code{x} as a fill container. Note, this
-will set the CSS \code{display} property on the tag to \code{flex} which can change how
+\item{container}{whether or not to treat `x` as a fill container. Note, this
+will set the CSS `display` property on the tag to `flex` which can change how
 its direct children are rendered. Thus, one should be careful not to
-mark a tag as a fill container when it needs to rely on other \code{display}
+mark a tag as a fill container when it needs to rely on other `display`
 behavior.}
 
 \item{overwrite}{whether or not to override previous calls to
-\code{bindFillRole()} (e.g., to remove the item/container role from a tag).}
+`bindFillRole()` (e.g., to remove the item/container role from a tag).}
 
 \item{.cssSelector}{A character string containing a CSS selector for
 targeting particular (inner) tag(s) of interest. For more details on what
-selector(s) are supported, see \code{\link[=tagAppendAttributes]{tagAppendAttributes()}}.}
+selector(s) are supported, see [tagAppendAttributes()].}
 }
 \value{
-The original tag object (\code{x}) with additional attributes (and a
-\code{\link[=htmlDependency]{htmlDependency()}}).
+The original tag object (`x`) with additional attributes (and a
+  [htmlDependency()]).
 }
 \description{
 Create fill containers and items. If a fill item is a direct child of a fill

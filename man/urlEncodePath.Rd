@@ -11,6 +11,6 @@ urlEncodePath(x)
 }
 \description{
 Encode characters in a URL path. This is the same as
-\code{\link[utils:URLencode]{utils::URLencode()}} with \code{reserved = TRUE} except that
-\code{/} is preserved.
+[utils::URLencode()] with `reserved = TRUE` except that
+`/` is preserved.
 }

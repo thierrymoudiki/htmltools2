@@ -17,21 +17,21 @@ restorePreserveChunks(strval, chunks)
 
 \item{strval}{Input string from which to extract/restore chunks.}
 
-\item{chunks}{The \code{chunks} element of the return value of
-\code{extractPreserveChunks}.}
+\item{chunks}{The `chunks` element of the return value of
+`extractPreserveChunks`.}
 }
 \value{
-\code{htmlPreserve} returns a single-element character vector with
-"magic" HTML comments surrounding the original text (unless the original
-text was empty, in which case an empty string is returned).
+`htmlPreserve` returns a single-element character vector with
+  "magic" HTML comments surrounding the original text (unless the original
+  text was empty, in which case an empty string is returned).
 
-\code{extractPreserveChunks} returns a list with two named elements:
-\code{value} is the string with the regions replaced, and \code{chunks} is
-a named character vector where the names are the IDs and the values are the
-regions that were extracted.
+`extractPreserveChunks` returns a list with two named elements:
+  `value` is the string with the regions replaced, and `chunks` is
+  a named character vector where the names are the IDs and the values are the
+  regions that were extracted.
 
-\code{restorePreserveChunks} returns a character vector with the
-chunk IDs replaced with their original values.
+`restorePreserveChunks` returns a character vector with the
+  chunk IDs replaced with their original values.
 }
 \description{
 Use "magic" HTML comments to protect regions of HTML from being modified by
@@ -41,7 +41,7 @@ text processing tools.
 Text processing tools like markdown and pandoc are designed to turn
 human-friendly markup into common output formats like HTML. This works well
 for most prose, but components that generate their own HTML may break if
-their markup is interpreted as the input language. The \code{htmlPreserve}
+their markup is interpreted as the input language. The `htmlPreserve`
 function is used to mark regions of an input document as containing pure HTML
 that must not be modified. This is achieved by substituting each such region
 with a benign but unique string before processing, and undoing those

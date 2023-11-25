@@ -12,9 +12,9 @@
 \arguments{
 \item{x}{The value to print.}
 
-\item{browse}{If \code{TRUE}, the HTML will be rendered and displayed in a
+\item{browse}{If `TRUE`, the HTML will be rendered and displayed in a
 browser (or possibly another HTML viewer supplied by the environment via
-the \code{viewer} option). If \code{FALSE} then the HTML object's markup
+the `viewer` option). If `FALSE` then the HTML object's markup
 will be rendered at the console.}
 
 \item{...}{Additional arguments passed to print.}

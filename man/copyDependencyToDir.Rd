@@ -12,18 +12,19 @@ copyDependencyToDir(dependency, outputDir, mustWork = TRUE)
 \item{outputDir}{The directory in which a subdirectory should be created for
 this dependency.}
 
-\item{mustWork}{If \code{TRUE} and \code{dependency} does not point to a
+\item{mustWork}{If `TRUE` and `dependency` does not point to a
 directory on disk (but rather a URL location), an error is raised. If
-\code{FALSE} then non-disk dependencies are returned without modification.}
+`FALSE` then non-disk dependencies are returned without modification.}
 }
 \value{
-The dependency with its \code{src} value updated to the new
-location's absolute path.
+The dependency with its `src` value updated to the new
+  location's absolute path.
 }
 \description{
 Copies an HTML dependency to a subdirectory of the given directory. The
-subdirectory name will be \emph{name}-\emph{version} (for example,
-"outputDir/jquery-1.11.0"). You may set \code{options(htmltools.dir.version = FALSE)} to suppress the version number in the subdirectory name.
+subdirectory name will be *name*-*version* (for example,
+"outputDir/jquery-1.11.0"). You may set `options(htmltools.dir.version =
+FALSE)` to suppress the version number in the subdirectory name.
 }
 \details{
 In order for disk-based dependencies to work with static HTML files, it's
@@ -32,6 +33,6 @@ HTML file, or to a subdirectory of that directory. This function makes it
 easier to perform that copy.
 }
 \seealso{
-\code{\link[=makeDependencyRelative]{makeDependencyRelative()}} can be used with the returned
-value to make the path relative to a specific directory.
+[makeDependencyRelative()] can be used with the returned
+  value to make the path relative to a specific directory.
 }

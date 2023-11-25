@@ -16,31 +16,33 @@ tagSetChildren(tag, ..., .cssSelector = NULL, list = NULL)
 tagInsertChildren(tag, after, ..., .cssSelector = NULL, list = NULL)
 }
 \arguments{
-\item{tag}{a \link{tag} object.}
+\item{tag}{a [tag] object.}
 
 \item{child}{A child element to append to a parent tag.}
 
-\item{.cssSelector}{A character string containing a \href{https://developer.mozilla.org/en-US/docs/Learn/CSS/Building_blocks/Selectors}{CSS selector}
+\item{.cssSelector}{A character string containing a [CSS
+selector](https://developer.mozilla.org/en-US/docs/Learn/CSS/Building_blocks/Selectors)
 for targeting particular (inner) tags of interest. At the moment, only a
 combination of
-\href{https://www.w3.org/TR/CSS22/selector.html#type-selectors}{type} (e.g,
-\code{div}), \href{https://www.w3.org/TR/CSS22/selector.html#class-html}{class}
-(e.g., \code{.my-class}),
-\href{https://www.w3.org/TR/CSS22/selector.html#id-selectors}{id} (e.g.,
-\verb{#myID}), and
-\href{https://www.w3.org/TR/CSS22/selector.html#universal-selector}{universal}
-(\code{*}) selectors within a given \href{https://www.w3.org/TR/CSS22/selector.html#selector-syntax}{simple selector} is
-supported. Note, if \code{.cssSelector} is used, the returned tags will have
-their \verb{$children} fields flattened to a single \code{list()} via \code{\link[=tagQuery]{tagQuery()}}.}
+[type](https://www.w3.org/TR/CSS22/selector.html#type-selectors) (e.g,
+`div`), [class](https://www.w3.org/TR/CSS22/selector.html#class-html)
+(e.g., `.my-class`),
+[id](https://www.w3.org/TR/CSS22/selector.html#id-selectors) (e.g.,
+`#myID`), and
+[universal](https://www.w3.org/TR/CSS22/selector.html#universal-selector)
+(`*`) selectors within a given [simple
+selector](https://www.w3.org/TR/CSS22/selector.html#selector-syntax) is
+supported. Note, if `.cssSelector` is used, the returned tags will have
+their `$children` fields flattened to a single `list()` via [`tagQuery()`].}
 
-\item{...}{a collection of \code{child} elements.}
+\item{...}{a collection of `child` elements.}
 
-\item{list}{Deprecated. Use \verb{!!!} instead to splice into \code{...}.}
+\item{list}{Deprecated. Use `!!!` instead to splice into `...`.}
 
 \item{after}{an integer value (i.e., subscript) referring to the child position to append after.}
 }
 \description{
-Modify the contents (aka children) of a \link{tag} object.
+Modify the contents (aka children) of a [tag] object.
 }
 \examples{
 html <- div(a(), h1())
@@ -56,5 +58,5 @@ tagInsertChildren(html, after = 1, span(), p())
 
 }
 \seealso{
-\code{\link[=tagAppendAttributes]{tagAppendAttributes()}}, \code{\link[=tagQuery]{tagQuery()}}
+[tagAppendAttributes()], [tagQuery()]
 }

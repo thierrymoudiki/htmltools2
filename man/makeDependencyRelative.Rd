@@ -9,24 +9,24 @@ makeDependencyRelative(dependency, basepath, mustWork = TRUE)
 \arguments{
 \item{dependency}{A single HTML dependency with an absolute path.}
 
-\item{basepath}{The path to the directory that \code{dependency} should be
+\item{basepath}{The path to the directory that `dependency` should be
 made relative to.}
 
-\item{mustWork}{If \code{TRUE} and \code{dependency} does not point to a
+\item{mustWork}{If `TRUE` and `dependency` does not point to a
 directory on disk (but rather a URL location), an error is raised. If
-\code{FALSE} then non-disk dependencies are returned without modification.}
+`FALSE` then non-disk dependencies are returned without modification.}
 }
 \value{
-The dependency with its \code{src} value updated to the new
+The dependency with its `src` value updated to the new
 location's relative path.
 
-If \code{baspath} did not appear to be a parent directory of the dependency's
-directory, an error is raised (regardless of the value of \code{mustWork}).
+If `baspath` did not appear to be a parent directory of the dependency's
+directory, an error is raised (regardless of the value of `mustWork`).
 }
 \description{
 Change a dependency's absolute path to be relative to one of its parent
 directories.
 }
 \seealso{
-\code{\link[=copyDependencyToDir]{copyDependencyToDir()}}
+[copyDependencyToDir()]
 }
