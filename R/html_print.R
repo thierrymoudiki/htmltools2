@@ -108,7 +108,7 @@ save_html.default <-
     }
 
     rendered <- renderTags(html)
-    print("\n in html_print.R/save_html.default \n")
+    cat("\n", "in html_print.R/save_html.default", "\n")
     deps <- lapply(rendered$dependencies, function(dep) {
       dep <- copyDependencyToDir(dep, libdir, FALSE)
       dep <- makeDependencyRelative(dep, dir, FALSE)
