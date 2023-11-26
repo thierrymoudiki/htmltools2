@@ -175,6 +175,12 @@ find_dep_filenames <- function(x, attr = "src") {
 
 # my utils ----------------------------------------------------------------
 
+get_function_name <- function(func) {
+  func_name <- deparse(substitute(func))
+  func_name <- sub('.*::', '', func_name)
+  return(func_name)
+}
+
 #' lapply with progress bar
 #'
 #' @param X a vector (atomic or list) or an \code{expression} object.
@@ -191,6 +197,9 @@ find_dep_filenames <- function(x, attr = "src") {
 #' @examples
 htlapply <- function(X, FUN, ...)
 {
+  function_name <- deparse(substitute(FUN))
+  function_name <- gsub("\\(.*", "", function_name)
+  cat("\n running function:", function_name, "\n\n")
   n_elts <- length(X)
   res <- vector("list", n_elts)
   pb <- utils::txtProgressBar(min = 0,

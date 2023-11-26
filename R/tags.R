@@ -1979,27 +1979,3 @@ standardize_property_names <- function(x) {
   # snake_case and dot.case to kebab-case
   gsub("[._]", "-", x)
 }
-
-htlapply <- function(X, FUN, ...)
-{
-  n_elts <- length(X)
-  res <- vector("list", n_elts)
-  pb <- utils::txtProgressBar(min = 0,
-                              max = n_elts,
-                              style = 3)
-  for (i in 1:n_elts)
-  {
-    res[[i]] <- FUN(X[[i]], ...)
-    utils::setTxtProgressBar(pb, i)
-  }
-  close(pb)
-
-  if (!is.null(names(X)))
-  {
-    names(res) <- names(X)
-  }
-
-  return(res)
-}
-htlapply <- compiler::cmpfun(htlapply)
-htlapply <- memoise::memoise(htlapply)
