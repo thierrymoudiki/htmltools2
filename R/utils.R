@@ -203,7 +203,7 @@ htlapply <- function(X, FUN, ...)
   n_elts <- length(X)
   res <- vector("list", n_elts)
   pb <- utils::txtProgressBar(min = 0,
-                              max = n_elts,
+                              max = max(n_elts, 1),
                               style = 3)
   for (i in 1:n_elts)
   {
