@@ -211,3 +211,4 @@ htlapply <- function(X, FUN, ...)
   return(res)
 }
 htlapply <- compiler::cmpfun(htlapply)
+htlapply <- memoise::memoise(htlapply)
