@@ -172,3 +172,42 @@ find_dep_filenames <- function(x, attr = "src") {
   # If we get here, we didn't find anything.
   character(0)
 }
+
+# my utils ----------------------------------------------------------------
+
+#' lapply with progress bar
+#'
+#' @param X a vector (atomic or list) or an \code{expression} object.
+#' Other objects (including classed objects) will be coerced by
+#' \code{base::as.list}.
+#' @param FUN the function to be applied to each element of X:
+#' see ‘Details’. In the case of functions like +, %*%, the
+#' function name must be backquoted or quoted.
+#' @param ... optional arguments to \code{FUN}.
+#'
+#' @return
+#' @export
+#'
+#' @examples
+htlapply <- function(X, FUN, ...)
+{
+  n_elts <- length(X)
+  res <- vector("list", n_elts)
+  pb <- utils::txtProgressBar(min = 0,
+                              max = n_elts,
+                              style = 3)
+  for (i in 1:n_elts)
+  {
+    res[[i]] <- FUN(X[[i]], ...)
+    utils::setTxtProgressBar(pb, i)
+  }
+  close(pb)
+
+  if (!is.null(names(X)))
+  {
+    names(res) <- names(X)
+  }
+
+  return(res)
+}
+htlapply <- compiler::cmpfun(htlapply)
