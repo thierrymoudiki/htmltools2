@@ -1002,9 +1002,11 @@ rewriteTags <- function(ui, func, preorder) {
     ui <- func(ui)
 
   if (isTag(ui)) {
-    ui$children[] <- htlapply(ui$children, rewriteTags, func, preorder)
+    ui$children[] <- htlapply(ui$children, rewriteTags, func, preorder,
+                              show_progress=FALSE)
   } else if (isTagList(ui)) {
-    ui[] <- htlapply(ui, rewriteTags, func, preorder)
+    ui[] <- htlapply(ui, rewriteTags, func, preorder,
+                     show_progress=FALSE)
   }
 
   if (!preorder)
@@ -1012,6 +1014,8 @@ rewriteTags <- function(ui, func, preorder) {
 
   return(ui)
 }
+rewriteTags <- compiler::cmpfun(rewriteTags)
+rewriteTags <- memoise::memoise(rewriteTags)
 
 #' Singleton manipulation functions
 #'

@@ -195,24 +195,34 @@ get_function_name <- function(func) {
 #' @export
 #'
 #' @examples
-htlapply <- function(X, FUN, ...)
+htlapply <- function(X, FUN, ...,
+                     show_progress = TRUE)
 {
   function_name <- deparse(substitute(FUN))
   function_name <- gsub("\\(.*", "", function_name)
   cat("\n running function:", function_name, "\n\n")
   n_elts <- length(X)
   res <- vector("list", n_elts)
-  pb <- utils::txtProgressBar(min = 0,
-                              max = max(n_elts, 1),
-                              style = 3)
-  try(
-  for (i in 1:n_elts)
+
+  if (show_progress == TRUE)
   {
-    res[[i]] <- FUN(X[[i]], ...)
-    utils::setTxtProgressBar(pb, i)
-  },
-  silent = TRUE)
-  close(pb)
+    pb <- utils::txtProgressBar(min = 0,
+                                max = max(n_elts, 1),
+                                style = 3)
+    try(for (i in 1:n_elts)
+    {
+      res[[i]] <- FUN(X[[i]], ...)
+      utils::setTxtProgressBar(pb, i)
+    },
+    silent = TRUE)
+    close(pb)
+  } else {
+    try(for (i in 1:n_elts)
+    {
+      res[[i]] <- FUN(X[[i]], ...)
+    },
+    silent = TRUE)
+  }
 
   if (!is.null(names(X)))
   {
