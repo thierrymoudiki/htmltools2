@@ -205,11 +205,13 @@ htlapply <- function(X, FUN, ...)
   pb <- utils::txtProgressBar(min = 0,
                               max = max(n_elts, 1),
                               style = 3)
+  try(
   for (i in 1:n_elts)
   {
     res[[i]] <- FUN(X[[i]], ...)
     utils::setTxtProgressBar(pb, i)
-  }
+  },
+  silent = TRUE)
   close(pb)
 
   if (!is.null(names(X)))
