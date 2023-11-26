@@ -185,7 +185,7 @@ match_and_decode <- function(str, pattern, ...) {
   #      [,1] [,2] [,3]
   # [1,] "12" "34" "56"
   # [2,] "AB" "CD" "EF"
-  vals <- lapply(seq_len(ncol(str_matrix)), function(i) {
+  vals <- htmltools::htlapply(seq_len(ncol(str_matrix)), function(i) {
     # Ex: decode_hex(c("12", "AB")) => c(18, 171)
     args[[i]](str_matrix[,i])
   })

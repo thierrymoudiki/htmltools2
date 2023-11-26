@@ -893,7 +893,7 @@ tagListPrintAsList <- function(...) {
 }
 tagQuerySelectedAsTags <- function(selected) {
   # return as a `tagList()` with a special attr that will cause it to print like a list
-  tagListPrintAsList(!!!lapply(selected, tagEnvToTags))
+  tagListPrintAsList(!!!htmltools::htlapply(selected, tagEnvToTags))
 }
 
 

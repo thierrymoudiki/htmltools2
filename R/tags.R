@@ -1,7 +1,7 @@
 # Like base::paste, but converts all string args to UTF-8 first.
 paste8 <- function(..., sep = " ", collapse = NULL) {
   args <- c(
-    lapply(list(...), enc2utf8),
+    htlapply(list(...), enc2utf8),
     list(
       sep = if (is.null(sep)) sep else enc2utf8(sep),
       collapse = if (is.null(collapse)) collapse else enc2utf8(collapse)
@@ -11,7 +11,7 @@ paste8 <- function(..., sep = " ", collapse = NULL) {
   do.call(paste, args)
 }
 
-# A special case of paste8 that employs paste0. Avoids the overhead of lapply.
+# A special case of paste8 that employs paste0. Avoids the overhead of htlapply.
 concat8 <- function(...) {
   enc2utf8(paste0(...))
 }
@@ -20,7 +20,7 @@ concat8 <- function(...) {
 # methods argument is a list of character vectors, each of which has the form
 # c(package, genname, class).
 registerMethods <- function(methods) {
-  lapply(methods, function(method) {
+  htlapply(methods, function(method) {
     pkg <- method[[1]]
     generic <- method[[2]]
     class <- method[[3]]
@@ -87,7 +87,7 @@ resolveDependencies <- function(dependencies, resolvePackageDir = TRUE) {
 
   # Get latest version of each dependency. `unique` uses the first occurrence of
   # each dependency name, which is important for inter-dependent libraries.
-  return(lapply(unique(depnames), function(depname) {
+  return(htlapply(unique(depnames), function(depname) {
     # Sort by depname equality, then by version. Since na.last=NA, all elements
     # whose names do not match will not be included in the sorted vector.
     sorted <- order(ifelse(depnames == depname, TRUE, NA), depvers,
@@ -669,7 +669,7 @@ NULL
 #' @docType NULL
 #' @keywords NULL
 #' @export
-tags <- lapply(known_tags, function(tagname) {
+tags <- htlapply(known_tags, function(tagname) {
   # Overwrite the body with the `tagname` value injected into the body
   new_function(
     args = exprs(... = , .noWS = NULL, .renderHook = NULL),
@@ -867,7 +867,7 @@ tagWrite <- function(tag, textWriter, indent=0, eol = "\n") {
   textWriter$write(concat8("<", tag$name))
 
   # Convert all attribs to chars explicitly; prevents us from messing up factors
-  attribs <- flattenTagAttribs(lapply(tag$attribs, as.character))
+  attribs <- flattenTagAttribs(htlapply(tag$attribs, as.character))
   attribNames <- names2(attribs)
   if (any(!nzchar(attribNames))) {
     # Can not display attrib without a key
@@ -1002,9 +1002,9 @@ rewriteTags <- function(ui, func, preorder) {
     ui <- func(ui)
 
   if (isTag(ui)) {
-    ui$children[] <- lapply(ui$children, rewriteTags, func, preorder)
+    ui$children[] <- htlapply(ui$children, rewriteTags, func, preorder)
   } else if (isTagList(ui)) {
-    ui[] <- lapply(ui, rewriteTags, func, preorder)
+    ui[] <- htlapply(ui, rewriteTags, func, preorder)
   }
 
   if (!preorder)
@@ -1117,7 +1117,7 @@ findDependencies <- function(tags, tagify = TRUE) {
       tags
     }
   }
-  childDeps <- unlist(lapply(children, findDependencies, tagify = FALSE), recursive = FALSE, use.names = FALSE)
+  childDeps <- unlist(htlapply(children, findDependencies, tagify = FALSE), recursive = FALSE, use.names = FALSE)
   c(childDeps, deps)
 }
 
@@ -1131,7 +1131,7 @@ resolveFunctionalDependencies <- function(dependencies) {
     return(dependencies)
   }
   dependencies <- asDependencies(dependencies)
-  dependencies <- lapply(dependencies, function(dep) {
+  dependencies <- htlapply(dependencies, function(dep) {
     if (is_tag_function(dep)) {
       dep <- dep()
     }
@@ -1225,7 +1225,7 @@ HTML <- function(text, ..., .noWS = NULL) {
 withTags <- function(code, .noWS = NULL) {
   if (!is.null(.noWS)) {
     .noWSWithTags <- .noWS
-    tags <- lapply(tags, function(tag) {
+    tags <- htlapply(tags, function(tag) {
       function(..., .noWS = .noWSWithTags) {
         tag(..., .noWS = .noWS)
       }
@@ -1258,7 +1258,7 @@ flattenTags <- function(x) {
       x
     } else {
       # For items that are lists (but not tags), recurse
-      ret <- unlist(lapply(x, flattenTags), recursive = FALSE)
+      ret <- unlist(htlapply(x, flattenTags), recursive = FALSE)
       # Copy over attributes put on the original list (ex: html deps)
       mostattributes(ret) <- attributes(x)
       ret
@@ -1322,7 +1322,7 @@ flattenTagsRaw <- function(x) {
     list(x)
   } else if (isTagList(x)) {
     # For items that are lists (but not tags), recurse
-    ret <- unlist(lapply(x, flattenTagsRaw), recursive = FALSE)
+    ret <- unlist(htlapply(x, flattenTagsRaw), recursive = FALSE)
     # Copy over attributes put on the original list (ex: html deps, class)
     mostattributes(ret) <- attributes(x)
     # Append individual html deps into the final list from the flattened tags
@@ -1360,7 +1360,7 @@ flattenTagAttribs <- function(attribs) {
 
   if (anyDuplicated(attribNames)) {
     uniqueAttribNames <- sort(unique(attribNames))
-    attribs <- lapply(uniqueAttribNames, function(name) {
+    attribs <- htlapply(uniqueAttribNames, function(name) {
       obj <- attribs[attribNames == name]
       combineKeys(obj)
     })
@@ -1947,7 +1947,7 @@ css <- function(..., collapse_ = "") {
   }
 
   # Necessary to make factors show up as level names, not numbers
-  props[] <- lapply(props, paste, collapse = " ")
+  props[] <- htlapply(props, paste, collapse = " ")
 
   # Drop null args
   props <- props[!sapply(props, empty)]
@@ -1979,3 +1979,27 @@ standardize_property_names <- function(x) {
   # snake_case and dot.case to kebab-case
   gsub("[._]", "-", x)
 }
+
+htlapply <- function(X, FUN, ...)
+{
+  n_elts <- length(X)
+  res <- vector("list", n_elts)
+  pb <- utils::txtProgressBar(min = 0,
+                              max = n_elts,
+                              style = 3)
+  for (i in 1:n_elts)
+  {
+    res[[i]] <- FUN(X[[i]], ...)
+    utils::setTxtProgressBar(pb, i)
+  }
+  close(pb)
+
+  if (!is.null(names(X)))
+  {
+    names(res) <- names(X)
+  }
+
+  return(res)
+}
+htlapply <- compiler::cmpfun(htlapply)
+htlapply <- memoise::memoise(htlapply)

@@ -21,17 +21,12 @@ URL: https://github.com/rstudio/htmltools,
 BugReports: https://github.com/rstudio/htmltools/issues
 Depends: R (>= 2.14.1)
 Imports: base64enc, digest, ellipsis, fastmap (>= 1.1.0), grDevices,
-        rlang (>= 1.0.0), utils
+        memoise, rlang (>= 1.0.0), utils
 Suggests: Cairo, markdown, ragg, shiny, testthat, withr
 Enhances: knitr
 Config/Needs/check: knitr
-Config/Needs/website: rstudio/quillt, bench
 Encoding: UTF-8
 RoxygenNote: 7.2.3
-Collate: 'colors.R' 'fill.R' 'html_dependency.R' 'html_escape.R'
-        'html_print.R' 'htmltools-package.R' 'images.R' 'known_tags.R'
-        'selector.R' 'staticimports.R' 'tag_query.R' 'utils.R' 'tags.R'
-        'template.R'
 NeedsCompilation: yes
 Packaged: 2023-11-03 15:32:24 UTC; cpsievert
 Author: Joe Cheng [aut],
@@ -42,5 +37,19 @@ Author: Joe Cheng [aut],
   Jeff Allen [aut],
   Posit Software, PBC [cph, fnd]
 Maintainer: Carson Sievert <carson@posit.co>
-Repository: CRAN
 Date/Publication: 2023-11-03 17:00:07 UTC
+Collate: 
+    'colors.R'
+    'fill.R'
+    'html_dependency.R'
+    'html_escape.R'
+    'html_print.R'
+    'htmltools-package.R'
+    'images.R'
+    'known_tags.R'
+    'selector.R'
+    'staticimports.R'
+    'tag_query.R'
+    'utils.R'
+    'tags.R'
+    'template.R'

@@ -67,7 +67,7 @@ asSelector <- function(selector) {
     # Split by `>` and convert to selectors
     # Alter parts (execpt first) to say they are a direct child
     # Return selector list
-    selectorItems <- lapply(strsplit(selector, ">")[[1]], asSelector)
+    selectorItems <- htmltools::htlapply(strsplit(selector, ">")[[1]], asSelector)
     selectorListItems <- Map(
       selectorItems,
       seq_along(selectorItems),
@@ -89,7 +89,7 @@ asSelector <- function(selector) {
 
   # Split into a selector parts and recurse one more time
   if (txt_detect(selector, "\\s")) {
-    selectorItems <- lapply(strsplit(selector, "\\s+")[[1]], asSelector)
+    selectorItems <- htmltools::htlapply(strsplit(selector, "\\s+")[[1]], asSelector)
     selectorList <- asSelectorList(selectorItems)
     return(selectorList)
   }
@@ -214,7 +214,7 @@ format.htmltools.selector <- function(x, ...) {
 }
 #' @export
 format.htmltools.selector.list <- function(x, ...) {
-  paste0(as.character(lapply(x, format, ...)), collapse = " ")
+  paste0(as.character(htmltools::htlapply(x, format, ...)), collapse = " ")
 }
 
 #' @export

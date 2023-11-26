@@ -110,7 +110,7 @@ renderDocument <- function(x, deps = NULL, processDep = identity) {
   # Figure out dependencies
   deps <- c(deps, result$dependencies)
   deps <- resolveDependencies(deps)
-  deps <- lapply(deps, processDep)
+  deps <- htmltools::htlapply(deps, processDep)
   depStr <- paste(sapply(deps, function(dep) {
     sprintf("%s[%s]", dep$name, dep$version)
   }), collapse = ";")

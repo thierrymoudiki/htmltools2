@@ -166,7 +166,7 @@ find_dep_filenames <- function(x, attr = "src") {
     if (!is.null(x[[attr]])) return(x[[attr]])
 
     # If we get here, the structure is list(list(src="abc"), list(src="xyz")).
-    return(unlist(lapply(x, find_dep_filenames)))
+    return(unlist(htmltools::htlapply(x, find_dep_filenames)))
   }
 
   # If we get here, we didn't find anything.

@@ -249,7 +249,7 @@ is_tag_function <- function(x) {
 #' @seealso [htmltools::htmlDependency()]
 #' @export
 suppressDependencies <- function(...) {
-  lapply(dots_list(...), function(name) {
+  htmltools::htlapply(dots_list(...), function(name) {
     attachDependencies(
       character(0),
       htmlDependency(name, "9999", c(href = ""))
@@ -550,7 +550,7 @@ renderScript <- function(script, srcpath, encodeFunc, hrefFilter) {
 
   # For each element, if it's a scalar string, transform it to a named
   # list with one element, "src".
-  script <- lapply(script, function(item) {
+  script <- htmltools::htlapply(script, function(item) {
     if (length(item) == 1 && is.character(item)) {
       item = list(src = item)
     }

@@ -109,7 +109,7 @@ save_html.default <-
 
     rendered <- renderTags(html)
     cat("\n", "in html_print.R/save_html.default", "\n")
-    deps <- lapply(rendered$dependencies, function(dep) {
+    deps <- htmltools::htlapply(rendered$dependencies, function(dep) {
       dep <- copyDependencyToDir(dep, libdir, FALSE)
       dep <- makeDependencyRelative(dep, dir, FALSE)
       dep
